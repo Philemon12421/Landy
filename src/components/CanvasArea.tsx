@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ProjectState, Block, SelectionState, BlockType } from '../types';
 import { 
   ArrowUp, ArrowDown, Trash2, Copy, Sparkles, Navigation, 
@@ -15,6 +15,7 @@ interface CanvasAreaProps {
   onDeleteBlock: (blockId: string) => void;
   onDuplicateBlock: (blockId: string) => void;
   onMoveBlock: (blockId: string, direction: 'up' | 'down') => void;
+  onReorderBlocks?: (blocks: Block[]) => void;
   isPreviewMode: boolean;
   onAddBlock: (type: BlockType) => void;
 }
@@ -29,10 +30,54 @@ export default function CanvasArea({
   onDeleteBlock,
   onDuplicateBlock,
   onMoveBlock,
+  onReorderBlocks,
   isPreviewMode,
   onAddBlock
 }: CanvasAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Selected Block Pixel Dimensions detector (Responsive Inspector)
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  // Drag and drop block reordering states
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [dragOverPos, setDragOverPos] = useState<'top' | 'bottom'>('top');
+
+  // Dynamically monitor component bounds in real time
+  useEffect(() => {
+    if (!selection.blockId || isPreviewMode) {
+      setDimensions(null);
+      return;
+    }
+
+    const measureActiveNode = () => {
+      const el = document.getElementById(`canvas-section-node-sec_${selection.blockId}`);
+      if (el) {
+        setDimensions({
+          width: Math.round(el.getBoundingClientRect().width),
+          height: Math.round(el.getBoundingClientRect().height)
+        });
+      }
+    };
+
+    measureActiveNode();
+
+    const el = document.getElementById(`canvas-section-node-sec_${selection.blockId}`);
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      measureActiveNode();
+    });
+    ro.observe(el);
+
+    // Also track during mouse movements/drags
+    window.addEventListener('resize', measureActiveNode);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measureActiveNode);
+    };
+  }, [selection.blockId, isPreviewMode, viewport, zoom, project.blocks]);
 
   // Translate width based on viewport frame selection
   const getViewportWidth = () => {
@@ -688,10 +733,37 @@ export default function CanvasArea({
 
         {/* Real Live Editable Blocks Area container */}
         <div 
-          className="flex-1 flex flex-col overflow-y-auto relative"
+          className="flex-1 flex flex-col overflow-y-auto relative bg-slate-50/5"
           style={{ backgroundColor: project.style.background }}
           id="editor-canvas-workspace-scroll"
         >
+          {/* Active alignment guide lines drawing over background ONLY when a block is being dragged */}
+          {draggedId && (
+            <>
+              {/* Center Alignment Snap Indicator */}
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 border-l border-dashed border-indigo-500/50 z-40 pointer-events-none flex items-center justify-start">
+                <span className="bg-slate-900 border border-slate-700 text-indigo-300 text-[8px] font-black font-mono px-2 py-0.5 rounded shadow-lg translate-y-[-160px] tracking-widest uppercase leading-none pl-1.5 flex items-center gap-1.5 pointer-events-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+                  SNAP: VERTICAL CENTER
+                </span>
+              </div>
+
+              {/* Grid outline guides - Left Margin Snapping Zone */}
+              <div className="absolute top-0 bottom-0 left-[10%] border-l border-dotted border-indigo-400/30 z-40 pointer-events-none flex items-center">
+                <span className="bg-slate-800/80 text-slate-300 text-[8px] font-mono px-1 py-0.5 rounded -translate-x-1/2 tracking-wider scale-90">
+                  MARGIN_L
+                </span>
+              </div>
+
+              {/* Grid outline guides - Right Margin Snapping Zone */}
+              <div className="absolute top-0 bottom-0 right-[10%] border-r border-dotted border-indigo-400/30 z-40 pointer-events-none flex items-center justify-end">
+                <span className="bg-slate-800/80 text-slate-300 text-[8px] font-mono px-1 py-0.5 rounded translate-x-1/2 tracking-wider scale-90">
+                  MARGIN_R
+                </span>
+              </div>
+            </>
+          )}
+
           {project.blocks.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-[60vh] text-slate-400">
               <Sparkles className="w-10 h-10 text-indigo-400 mb-3 animate-pulse" />
@@ -715,6 +787,7 @@ export default function CanvasArea({
           ) : (
             project.blocks.map((block, idx) => {
               const isSelected = selection.blockId === block.id;
+              const isGhost = draggedId === block.id;
 
               return (
                 <div
@@ -724,13 +797,74 @@ export default function CanvasArea({
                     e.stopPropagation();
                     setSelection({ blockId: block.id, elementId: null });
                   }}
-                  className={`group relative transition-all ${
+                  draggable={!isPreviewMode}
+                  onDragStart={(e) => {
+                    if (isPreviewMode) return;
+                    setDraggedId(block.id);
+                    // Standard drag data payloads
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', block.id);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedId(null);
+                    setDragOverIdx(null);
+                  }}
+                  onDragOver={(e) => {
+                    if (isPreviewMode || !draggedId || draggedId === block.id) return;
+                    e.preventDefault();
+                    
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const relativeOffset = e.clientY - rect.top;
+                    const isOverTopHalf = relativeOffset < rect.height / 2;
+                    
+                    setDragOverIdx(idx);
+                    setDragOverPos(isOverTopHalf ? 'top' : 'bottom');
+                  }}
+                  onDrop={(e) => {
+                    if (isPreviewMode || !draggedId || !onReorderBlocks) return;
+                    e.preventDefault();
+                    
+                    const activeDraggedId = draggedId;
+                    if (activeDraggedId === block.id) return;
+
+                    const sourceIdx = project.blocks.findIndex(b => b.id === activeDraggedId);
+                    if (sourceIdx === -1) return;
+
+                    const updatedChain = [...project.blocks];
+                    const [targetBlock] = updatedChain.splice(sourceIdx, 1);
+                    
+                    let targetIdx = project.blocks.findIndex(b => b.id === block.id);
+                    if (dragOverPos === 'bottom') {
+                      targetIdx += 1;
+                    }
+                    
+                    updatedChain.splice(targetIdx, 0, targetBlock);
+                    onReorderBlocks(updatedChain);
+
+                    setDraggedId(null);
+                    setDragOverIdx(null);
+                  }}
+                  className={`group relative transition-all duration-200 cursor-grab active:cursor-grabbing ${
                     isSelected 
                       ? 'z-20' 
-                      : 'hover:ring-2 hover:ring-indigo-100 hover:ring-offset-1 rounded-sm'
-                  }`}
+                      : 'hover:ring-2 hover:ring-indigo-150 hover:ring-offset-1 rounded-sm'
+                  } ${isGhost ? 'opacity-30 border border-dashed border-indigo-400 bg-indigo-50/10' : ''}`}
                   style={getThemeSectionStyles(block)}
                 >
+                  
+                  {/* Dynamic placement snap lines previewed during drags */}
+                  {draggedId && dragOverIdx === idx && (
+                    <div 
+                      className={`absolute left-0 right-0 h-[4px] bg-emerald-500 animate-pulse z-50 pointer-events-none ${
+                        dragOverPos === 'top' ? 'top-0' : 'bottom-0'
+                      }`}
+                    >
+                      <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-600 shadow-xl border border-emerald-500 text-white font-mono text-[8px] font-extrabold uppercase px-2 py-0.5 rounded flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                        SNAP INDEX: {idx + (dragOverPos === 'bottom' ? 1 : 0)}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Canva Selection Outline Handles */}
                   {isSelected && (
@@ -739,14 +873,27 @@ export default function CanvasArea({
                       <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full" />
                       <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full" />
                       <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full" />
+                      
+                      {/* Name tag */}
                       <div className="absolute -top-6.5 left-3 bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-md whitespace-nowrap uppercase tracking-widest leading-none">
                         {block.name.slice(0, 24)}
                       </div>
+
+                      {/* Responsive Inspector details badge overlay displaying actual node width and height in real time */}
+                      {dimensions && (
+                        <div className="absolute -bottom-7 right-3 bg-slate-900 border border-slate-700/80 text-white text-[9.5px] font-mono font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 justify-center leading-none">
+                          <span className="text-indigo-400 text-[10px] animate-pulse">📐</span>
+                          <span className="text-slate-400 font-semibold">Inspector Bounds:</span>
+                          <span className="text-emerald-400 font-extrabold">{dimensions.width}px</span>
+                          <span className="text-slate-500">×</span>
+                          <span className="text-emerald-400 font-extrabold">{dimensions.height}px</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Canvas block overlay editor controller triggers */}
-                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-40 bg-slate-900 text-white rounded-xl p-1 shadow-md text-[10px] font-bold">
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-45 bg-slate-900 text-white rounded-xl p-1 shadow-md text-[10px] font-bold">
                     <span className="text-slate-400 font-mono tracking-wide capitalize px-2 text-[9px] shrink-0">
                       {block.type.replace('_', ' ')}
                     </span>

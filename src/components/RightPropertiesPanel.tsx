@@ -174,7 +174,7 @@ export default function RightPropertiesPanel({
   });
 
   return (
-    <div className="w-80 border-l border-slate-200 bg-white flex flex-col h-full select-none shadow-sm" id="builder-right-panel">
+    <div className="w-80 border-r border-slate-200 bg-white flex flex-col h-full select-none shadow-sm animate-fade-in" id="builder-left-panel">
       
       {/* Dynamic Header State */}
       {selectedBlock ? (

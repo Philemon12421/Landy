@@ -9,7 +9,7 @@ import RightPropertiesPanel from './components/RightPropertiesPanel';
 import StatusBar from './components/StatusBar';
 import PublicGalleryModal from './components/PublicGalleryModal';
 import { 
-  Sparkles, Keyboard, HelpCircle, X, Check, Globe, Share2, Info, LayoutList
+  Sparkles, Keyboard, HelpCircle, X, Check, Globe, Share2, Info, LayoutList, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 
 export default function App() {
@@ -50,19 +50,46 @@ export default function App() {
   const [publishing, setPublishing] = useState(false);
   const [pubSuccess, setPubSuccess] = useState(false);
 
+  // Notification Toast states
+  interface Toast {
+    id: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 2800);
+  }, []);
+
+  // Track mounting state
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   // Auto-save tracker synchronizing state to LocalStorage
   useEffect(() => {
+    if (!hasMounted) return;
+
     setIsSaving(true);
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem('landy_canvas_doc', JSON.stringify(project));
+        const payload = JSON.stringify(project);
+        localStorage.setItem('landy_canvas_doc', payload);
+        addToast('Document progression autosaved successfully', 'success');
       } catch (err) {
         console.error('Failed to autosave project state to LocalStorage: ', err);
+        addToast('LocalStorage quota limit reached. Design could not be saved!', 'error');
       }
       setIsSaving(false);
-    }, 600);
+    }, 900);
     return () => clearTimeout(timer);
-  }, [project]);
+  }, [project, hasMounted, addToast]);
 
   // Push new project change onto Undo stack safely
   const updateProject = useCallback((nextState: ProjectState) => {
@@ -170,6 +197,11 @@ export default function App() {
     nextBlocks[idx] = nextBlocks[swapIdx];
     nextBlocks[swapIdx] = temp;
 
+    updateProject({ ...project, blocks: nextBlocks });
+  }, [project, updateProject]);
+
+  // Bulk re-ordering from Drag and drop
+  const handleReorderBlocks = useCallback((nextBlocks: Block[]) => {
     updateProject({ ...project, blocks: nextBlocks });
   }, [project, updateProject]);
 
@@ -364,22 +396,7 @@ export default function App() {
       {/* 2. Primary Editor Body */}
       <div className="flex-1 flex overflow-hidden min-h-0 relative">
         
-        {/* Central interactive grid representation */}
-        <CanvasArea 
-          project={project}
-          viewport={viewport}
-          zoom={zoom}
-          selection={selection}
-          setSelection={setSelection}
-          onUpdateBlock={handleUpdateBlock}
-          onDeleteBlock={handleDeleteBlock}
-          onDuplicateBlock={handleDuplicateBlock}
-          onMoveBlock={handleMoveBlock}
-          isPreviewMode={isPreviewMode}
-          onAddBlock={handleAddBlock}
-        />
-
-        {/* Right Side Style parameters */}
+        {/* Left Side Style parameters */}
         {!isPreviewMode && (
           <RightPropertiesPanel 
             project={project}
@@ -394,8 +411,24 @@ export default function App() {
           />
         )}
 
+        {/* Central interactive grid representation */}
+        <CanvasArea 
+          project={project}
+          viewport={viewport}
+          zoom={zoom}
+          selection={selection}
+          setSelection={setSelection}
+          onUpdateBlock={handleUpdateBlock}
+          onDeleteBlock={handleDeleteBlock}
+          onDuplicateBlock={handleDuplicateBlock}
+          onMoveBlock={handleMoveBlock}
+          onReorderBlocks={handleReorderBlocks}
+          isPreviewMode={isPreviewMode}
+          onAddBlock={handleAddBlock}
+        />
+
         {/* Floating Utilities Hub widgets */}
-        <div className="absolute bottom-4 left-4 z-40 flex items-center gap-2">
+        <div className="absolute bottom-4 right-4 z-40 flex items-center gap-2">
           
           <button
             onClick={() => setShowGalleryModal(true)}
@@ -417,6 +450,34 @@ export default function App() {
 
         </div>
 
+      </div>
+
+      {/* Floating Active Status Toasts Stack */}
+      <div className="fixed bottom-14 right-6 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none">
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className={`p-3.5 px-4 rounded-xl shadow-2xl border flex items-center gap-3 pointer-events-auto backdrop-blur-md transition-all duration-300 transform translate-y-0 animate-fade-in-up ${
+              toast.type === 'error'
+                ? 'bg-rose-950/95 border-rose-800/90 text-rose-100 shadow-rose-950/20'
+                : toast.type === 'success'
+                ? 'bg-slate-900/95 border-emerald-800/80 text-emerald-100 shadow-slate-950/40'
+                : 'bg-slate-950/95 border-slate-800 text-slate-100'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0" />
+            ) : toast.type === 'error' ? (
+              <AlertTriangle className="w-4.5 h-4.5 text-rose-400 shrink-0" />
+            ) : (
+              <Info className="w-4.5 h-4.5 text-indigo-400 shrink-0" />
+            )}
+            <div className="flex flex-col">
+              <span className="text-xs font-bold leading-normal">{toast.message}</span>
+              <span className="text-[9px] opacity-50 font-semibold font-mono">Just now</span>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* 3. Bottom Status sync Bar */}
