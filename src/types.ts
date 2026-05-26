@@ -76,6 +76,11 @@ export interface BlockContent {
   formEmailTarget?: string;
   dividerStyle?: 'solid' | 'dashed' | 'dotted';
   spacerHeight?: number; // in pixels
+  imageAspectRatio?: 'auto' | 'square' | 'video' | 'portrait' | 'wide';
+  imageFit?: 'cover' | 'contain' | 'fill';
+  imageFilter?: 'none' | 'grayscale' | 'blur' | 'sepia' | 'vintage' | 'warm' | 'cool';
+  imageBorderWidth?: number;
+  imageBorderColor?: string;
 }
 
 export interface BlockStyles {

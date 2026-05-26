@@ -73,6 +73,76 @@ export default function CanvasArea({
     }
   };
 
+  const getThemedCardClass = (block: Block) => {
+    const isNeon = project.style.theme === 'neo_brutalist';
+    const isGlass = project.style.theme === 'glassmorphism';
+    const isCosmic = project.style.theme === 'cosmic_dark';
+
+    const roundnessPreset = radiusClass(block.styles.borderRadius || project.style.radius);
+
+    if (isNeon) {
+      return `p-6 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all rounded-none text-slate-950`;
+    }
+
+    if (isGlass) {
+      return `p-6 bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-xl hover:bg-white/15 transition-all ${roundnessPreset}`;
+    }
+
+    if (isCosmic) {
+      return `p-6 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:shadow-lg transition-all text-slate-100 ${roundnessPreset}`;
+    }
+
+    // Default: Minimal Modern
+    return `p-6 bg-white border border-slate-100/90 hover:border-slate-200 shadow-sm hover:shadow transition-all text-slate-800 ${roundnessPreset}`;
+  };
+
+  const getImageCustomStyles = (block: Block, defaultUrl: string) => {
+    const customUrl = block.content.imageUrl || defaultUrl;
+    const aspect = block.content.imageAspectRatio || 'auto';
+    const fit = block.content.imageFit || 'cover';
+    const filter = block.content.imageFilter || 'none';
+    const borderWidth = typeof block.content.imageBorderWidth !== 'undefined' ? Number(block.content.imageBorderWidth) : 0;
+    const borderColor = block.content.imageBorderColor || '#cbd5e1';
+
+    let filterStyle = '';
+    if (filter === 'grayscale') filterStyle = 'grayscale(100%)';
+    else if (filter === 'blur') filterStyle = 'blur(5px)';
+    else if (filter === 'sepia') filterStyle = 'sepia(80%)';
+    else if (filter === 'vintage') filterStyle = 'sepia(40%) contrast(125%) saturate(120%) hue-rotate(-10deg)';
+    else if (filter === 'warm') filterStyle = 'saturate(130%) contrast(105%) sepia(8%)';
+    else if (filter === 'cool') filterStyle = 'hue-rotate(12deg) saturate(95%) brightness(105%)';
+
+    const aspectClasses: Record<string, string> = {
+      'auto': 'aspect-auto h-auto',
+      'square': 'aspect-square',
+      'video': 'aspect-video',
+      'portrait': 'aspect-[3/4]',
+      'wide': 'aspect-[21/9]'
+    };
+
+    const fitClasses: Record<string, string> = {
+      'cover': 'object-cover',
+      'contain': 'object-contain bg-slate-50/50',
+      'fill': 'object-fill'
+    };
+
+    const aspectClass = aspectClasses[aspect] || 'aspect-auto h-auto';
+    const fitClass = fitClasses[fit] || 'object-cover';
+    const roundness = radiusClass(block.styles.borderRadius || project.style.radius);
+    const shadow = shadowClass(block.styles.shadow || project.style.shadows);
+
+    return {
+      src: customUrl,
+      className: `w-full max-h-[460px] border transition-all duration-300 ${aspectClass} ${fitClass} ${roundness} ${shadow}`,
+      style: {
+        filter: filterStyle || undefined,
+        borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
+        borderStyle: borderWidth > 0 ? 'solid' : undefined,
+        borderColor: borderWidth > 0 ? borderColor : undefined,
+      }
+    };
+  };
+
   const handleTextChange = (blockId: string, field: string, newValue: string) => {
     const block = project.blocks.find(b => b.id === blockId);
     if (block) {
@@ -138,14 +208,18 @@ export default function CanvasArea({
               {block.content.brandName || 'Landy'}
             </span>
             
-            <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider" style={{ color: block.styles.textColor || '#1e293b' }}>
               {(block.content.links || []).map((link, lidx) => (
-                <span
+                <a
                   key={lidx}
-                  className="hover:text-indigo-600 transition-colors"
+                  href={link.url || '#'}
+                  className="hover:opacity-75 transition-all duration-150"
+                  onClick={(e) => {
+                    if (!isPreviewMode) e.preventDefault();
+                  }}
                 >
                   {link.label}
-                </span>
+                </a>
               ))}
             </div>
 
@@ -231,10 +305,9 @@ export default function CanvasArea({
             {block.content.imageUrl && (
               <div className="flex justify-center">
                 <img 
-                  src={block.content.imageUrl} 
                   alt={block.content.imageAlt || 'Hero Banner'}
                   referrerPolicy="no-referrer"
-                  className={`w-full max-h-[440px] object-cover border border-slate-200/80 transition-all ${radiusClass(block.styles.borderRadius || project.style.radius)} ${shadowClass(block.styles.shadow || project.style.shadows)}`}
+                  {...getImageCustomStyles(block, 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80')}
                 />
               </div>
             )}
@@ -270,14 +343,14 @@ export default function CanvasArea({
               {(block.content.features || []).map((feat, fidx) => (
                 <div 
                   key={fidx} 
-                  className={`p-6 bg-white border border-slate-100 hover:border-slate-200 flex flex-col justify-between space-y-4 shadow-sm hover:shadow transition-all ${radiusClass(block.styles.borderRadius || project.style.radius)}`}
+                  className={getThemedCardClass(block)}
                 >
                   <div className="space-y-3">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm" style={{ backgroundColor: `${brandColor}12`, color: brandColor }}>
                       <Star className="w-4 h-4" />
                     </div>
-                    <h3 className="font-extrabold text-sm text-slate-800">{feat.title}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">{feat.description}</p>
+                    <h3 className="font-extrabold text-sm">{feat.title}</h3>
+                    <p className="text-xs leading-relaxed opacity-85">{feat.description}</p>
                   </div>
                 </div>
               ))}
@@ -301,19 +374,19 @@ export default function CanvasArea({
               {(block.content.testimonials || []).map((test, tid) => (
                 <div 
                   key={tid} 
-                  className={`bg-white p-6 border border-slate-100 flex flex-col justify-between text-left space-y-6 shadow-sm ${radiusClass(block.styles.borderRadius || project.style.radius)}`}
+                  className={getThemedCardClass(block)}
                 >
-                  <p className="text-xs md:text-sm italic leading-relaxed text-slate-600 font-medium">"{test.quote}"</p>
-                  <div className="flex items-center gap-3 border-t border-slate-50 pt-4">
+                  <p className="text-xs md:text-sm italic leading-relaxed opacity-90">"{test.quote}"</p>
+                  <div className="flex items-center gap-3 border-t border-slate-55/15 pt-4 mt-4">
                     <img 
                       src={test.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'} 
                       alt={test.author} 
                       referrerPolicy="no-referrer"
-                      className="w-9 h-9 rounded-full object-cover shadow-sm border border-slate-100" 
+                      className="w-9 h-9 rounded-full object-cover shadow-sm border border-slate-100/10" 
                     />
                     <div>
-                      <h4 className="text-xs font-black text-slate-800">{test.author}</h4>
-                      <span className="text-[10px] text-slate-450 text-slate-400 font-bold block">{test.role}</span>
+                      <h4 className="text-xs font-black">{test.author}</h4>
+                      <span className="text-[10px] opacity-75 font-bold block">{test.role}</span>
                     </div>
                   </div>
                 </div>
@@ -332,52 +405,55 @@ export default function CanvasArea({
                 </span>
               )}
               <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: block.styles.textColor }}>{block.content.title}</h2>
-              {block.content.description && <p className="text-xs text-slate-500 font-medium">{block.content.description}</p>}
+              {block.content.description && <p className="text-xs opacity-75 font-medium">{block.content.description}</p>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-              {(block.content.pricingPlans || []).map((plan, pidx) => (
-                <div 
-                  key={pidx} 
-                  className={`p-6 bg-white border border-slate-100 flex flex-col justify-between relative transition-all shadow-sm ${
-                    plan.popular ? 'ring-2 ring-indigo-600 shadow-md scale-102 z-10' : ''
-                  } ${radiusClass(block.styles.borderRadius || project.style.radius)}`}
-                >
-                  {plan.popular && (
-                    <span 
-                      className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 text-white rounded-full text-[8.5px] font-black tracking-widest uppercase shadow-sm"
-                      style={{ backgroundColor: brandColor }}
-                    >
-                      MOST POPULAR
-                    </span>
-                  )}
-                  
-                  <div className="space-y-5">
-                    <h3 className="font-extrabold text-xs text-slate-500 uppercase tracking-widest">{plan.name}</h3>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-900">{plan.price}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">/{plan.period}</span>
-                    </div>
-                    
-                    <div className="w-full h-px bg-slate-100" />
-
-                    <ul className="space-y-3.5 text-xs text-slate-600 font-medium">
-                      {plan.features.map((feat, f_idx) => (
-                        <li key={f_idx} className="flex items-start gap-2">
-                          <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
-                          <span>{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <button 
-                    className="w-full mt-8 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-100 transition-colors text-xs font-extrabold text-slate-800 rounded-xl"
+            <div className={`grid grid-cols-1 ${block.content.pricingPlans?.length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' : block.content.pricingPlans?.length === 1 ? 'max-w-md mx-auto grid-cols-1' : 'md:grid-cols-3'} gap-6 pt-4`}>
+              {(block.content.pricingPlans || []).map((plan, pidx) => {
+                const isNeon = project.style.theme === 'neo_brutalist';
+                const popularRing = plan.popular ? (isNeon ? 'ring-3 ring-black shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'ring-2 ring-indigo-600 scale-102 z-10 shadow-lg') : '';
+                return (
+                  <div 
+                    key={pidx} 
+                    className={`${getThemedCardClass(block)} relative overflow-hidden transition-all ${popularRing}`}
                   >
-                    {plan.btnText}
-                  </button>
-                </div>
-              ))}
+                    {plan.popular && (
+                      <span 
+                        className="absolute top-2 right-2 px-3 py-1 text-white rounded text-[8.5px] font-black tracking-widest uppercase shadow-sm"
+                        style={{ backgroundColor: brandColor }}
+                      >
+                        POPULAR
+                      </span>
+                    )}
+                    
+                    <div className="space-y-5">
+                      <h3 className="font-extrabold text-[10px] opacity-60 uppercase tracking-widest">{plan.name}</h3>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black">{plan.price}</span>
+                        <span className="text-[10px] opacity-60 font-bold uppercase">/{plan.period}</span>
+                      </div>
+                      
+                      <div className="w-full h-px bg-slate-150/10" />
+
+                      <ul className="space-y-3.5 text-xs font-medium">
+                        {(plan.features || []).map((feat, f_idx) => (
+                          <li key={f_idx} className="flex items-start gap-2">
+                            <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: brandColor }} />
+                            <span className="opacity-95">{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button 
+                      className="w-full mt-8 py-3 bg-slate-50/10 hover:bg-slate-100/20 border border-slate-100/15 transition-all text-xs font-extrabold rounded-xl"
+                      style={{ color: block.styles.textColor }}
+                    >
+                      {plan.btnText}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -387,25 +463,25 @@ export default function CanvasArea({
           <div className="max-w-xl mx-auto space-y-6 text-center">
             <div className="space-y-2">
               <h2 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: block.styles.textColor }}>{block.content.title}</h2>
-              {block.content.description && <p className="text-xs leading-relaxed text-slate-500 font-medium">{block.content.description}</p>}
+              {block.content.description && <p className="text-xs leading-relaxed opacity-75 font-medium">{block.content.description}</p>}
             </div>
 
-            <div className={`bg-white p-6 border border-slate-100 text-left space-y-4 shadow-sm ${radiusClass(block.styles.borderRadius || project.style.radius)}`}>
+            <div className={`${getThemedCardClass(block)} text-left space-y-4 shadow-md`}>
               {(block.content.formFields || []).map((field, f_idx) => (
                 <div key={f_idx} className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-550 text-slate-500 uppercase tracking-wider block">{field.label}</label>
+                  <label className="text-[10px] font-bold opacity-60 uppercase tracking-wider block">{field.label}</label>
                   {field.type === 'textarea' ? (
                     <textarea 
                       placeholder={field.placeholder} 
                       rows={2} 
-                      className="w-full p-3 text-xs border border-slate-200 bg-slate-50/50 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white text-slate-800 font-medium" 
+                      className="w-full p-3 text-xs border border-slate-200/20 bg-slate-50/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-inherit" 
                       disabled 
                     />
                   ) : (
                     <input 
                       type={field.type} 
                       placeholder={field.placeholder} 
-                      className="w-full p-3 text-xs border border-slate-200 bg-slate-50/50 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white text-slate-800 font-medium" 
+                      className="w-full p-3 text-xs border border-slate-200/20 bg-slate-50/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-inherit" 
                       disabled 
                     />
                   )}
@@ -462,15 +538,14 @@ export default function CanvasArea({
 
       case 'image_block':
         return (
-          <div className="max-w-4xl mx-auto text-center space-y-3">
+          <div className="max-w-4xl mx-auto text-center space-y-4">
             <img 
-              src={block.content.imageUrl} 
               alt={block.content.imageAlt || 'Gallery Showcase'} 
               referrerPolicy="no-referrer"
-              className={`w-full h-auto max-h-[480px] object-cover border border-slate-250 transition-all ${radiusClass(block.styles.borderRadius || project.style.radius)} ${shadowClass(block.styles.shadow || project.style.shadows)}`} 
+              {...getImageCustomStyles(block, 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80')}
             />
             {block.content.description && (
-              <p className="text-xs text-slate-400 italic font-medium">
+              <p className="text-xs opacity-60 italic font-medium">
                 {block.content.description}
               </p>
             )}
@@ -541,7 +616,7 @@ export default function CanvasArea({
   if (isPreviewMode) {
     return (
       <div 
-        className="flex-1 w-full min-h-screen select-text overflow-y-auto"
+        className="flex-1 w-full min-h-screen select-text overflow-y-auto scroll-smooth pb-24"
         id="production-mode-viewport"
         style={{ 
           backgroundColor: project.style.background,
@@ -549,17 +624,22 @@ export default function CanvasArea({
         }}
       >
         <div className="w-full flex flex-col">
-          {project.blocks.map((block) => (
+          {project.blocks.map((block, idx) => (
             <div 
               key={block.id} 
-              style={getThemeSectionStyles(block)}
+              style={{
+                ...getThemeSectionStyles(block),
+                animationDelay: `${idx * 120}ms`,
+                animationFillMode: 'both'
+              }}
+              className="w-full animate-fade-in-up opacity-0"
             >
               <div 
                 style={{ 
                   paddingTop: `${block.styles.paddingTop}px`, 
                   paddingBottom: `${block.styles.paddingBottom}px` 
                 }}
-                className="w-full md:px-12 px-6"
+                className="w-full md:px-16 px-8 max-w-7xl mx-auto"
               >
                 {renderBlockContent(block)}
               </div>

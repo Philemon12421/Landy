@@ -279,18 +279,84 @@ export default function RightPropertiesPanel({
                   Inline Text Bindings
                 </span>
 
-                {/* Navbar custom brandName edit */}
+                {/* Navbar custom brandName and links edit panel */}
                 {(selectedBlock.type === 'navbar' || selectedBlock.type === 'footer') && (
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-600">Company / Brand Label</label>
-                    <input
-                      type="text"
-                      value={selectedBlock.content.brandName || ''}
-                      onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                        content: { ...selectedBlock.content, brandName: e.target.value }
-                      })}
-                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-600 block">Company / Brand Label</label>
+                      <input
+                        type="text"
+                        value={selectedBlock.content.brandName || ''}
+                        onChange={(e) => onUpdateBlock(selectedBlock.id, {
+                          content: { ...selectedBlock.content, brandName: e.target.value }
+                        })}
+                        className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                      />
+                    </div>
+
+                    {selectedBlock.type === 'navbar' && (
+                      <div className="space-y-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Navbar Link List</span>
+                        <div className="space-y-2">
+                          {(selectedBlock.content.links || []).map((lnk, lidx) => (
+                            <div key={lidx} className="flex gap-2.5 items-center">
+                              <input
+                                type="text"
+                                value={lnk.label}
+                                placeholder="e.g. Features"
+                                onChange={(e) => {
+                                  const updatedLinks = [...(selectedBlock.content.links || [])];
+                                  updatedLinks[lidx] = { ...lnk, label: e.target.value };
+                                  onUpdateBlock(selectedBlock.id, {
+                                    content: { ...selectedBlock.content, links: updatedLinks }
+                                  });
+                                }}
+                                className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg"
+                              />
+                              <input
+                                type="text"
+                                value={lnk.url}
+                                placeholder="e.g. #features"
+                                onChange={(e) => {
+                                  const updatedLinks = [...(selectedBlock.content.links || [])];
+                                  updatedLinks[lidx] = { ...lnk, url: e.target.value };
+                                  onUpdateBlock(selectedBlock.id, {
+                                    content: { ...selectedBlock.content, links: updatedLinks }
+                                  });
+                                }}
+                                className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedLinks = (selectedBlock.content.links || []).filter((_, li) => li !== lidx);
+                                  onUpdateBlock(selectedBlock.id, {
+                                    content: { ...selectedBlock.content, links: updatedLinks }
+                                  });
+                                }}
+                                className="text-red-500 p-1 bg-red-50 hover:bg-red-100 rounded-lg text-xs"
+                                title="Delete link"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedLinks = [...(selectedBlock.content.links || []), { label: 'New Link', url: '#' }];
+                            onUpdateBlock(selectedBlock.id, {
+                              content: { ...selectedBlock.content, links: updatedLinks }
+                            });
+                          }}
+                          className="w-full text-[10px] py-1.5 text-center bg-indigo-55 text-indigo-700 font-extrabold hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-center gap-1.5"
+                        >
+                          <Plus className="w-3 h-3" /> Add Link
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -401,32 +467,165 @@ export default function RightPropertiesPanel({
                   </div>
                 )}
 
-                {/* Media Image parameters */}
+                {/* Media Image parameters with Drag-and-Drop Local Image Upload & Customizations */}
                 {typeof selectedBlock.content.imageUrl !== 'undefined' && (
-                  <div className="space-y-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Visual Image Asset</span>
-                    <div className="space-y-2">
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-slate-500 font-semibold">Image Source URL</label>
+                  <div className="space-y-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">Visual Image Asset</span>
+                    
+                    {/* Source URL Input */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-bold">Image URL Source</label>
+                      <input
+                        type="text"
+                        value={selectedBlock.content.imageUrl || ''}
+                        onChange={(e) => onUpdateBlock(selectedBlock.id, {
+                          content: { ...selectedBlock.content, imageUrl: e.target.value }
+                        })}
+                        className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg text-slate-850"
+                        placeholder="Paste image address..."
+                      />
+                    </div>
+
+                    {/* Drag-and-Drop/Click Local File Upload */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-bold block">OR Upload Local File</label>
+                      <div className="border border-dashed border-indigo-200/80 hover:border-indigo-400 rounded-xl p-3 text-center bg-white cursor-pointer relative transition-all duration-150 group">
                         <input
-                          type="text"
-                          value={selectedBlock.content.imageUrl || ''}
-                          onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                            content: { ...selectedBlock.content, imageUrl: e.target.value }
-                          })}
-                          className="w-full text-[11px] p-1.5 bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400 truncate"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                onUpdateBlock(selectedBlock.id, {
+                                  content: { ...selectedBlock.content, imageUrl: reader.result as string }
+                                });
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                         />
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-extrabold text-indigo-600 group-hover:underline">Choose image file</span>
+                          <p className="text-[8px] text-slate-400">Supports PNG, JPG, WEBP, GIF</p>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-slate-500 font-semibold">Alternative Accessibility Label</label>
-                        <input
-                          type="text"
-                          value={selectedBlock.content.imageAlt || ''}
-                          onChange={(e) => onUpdateBlock(selectedBlock.id, {
-                            content: { ...selectedBlock.content, imageAlt: e.target.value }
-                          })}
-                          className="w-full text-xs p-1.5 bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                        />
+                    </div>
+
+                    {/* Alt Tag Description */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-bold">Image Alt (SEO / Screen Readers)</label>
+                      <input
+                        type="text"
+                        value={selectedBlock.content.imageAlt || ''}
+                        onChange={(e) => onUpdateBlock(selectedBlock.id, {
+                          content: { ...selectedBlock.content, imageAlt: e.target.value }
+                        })}
+                        className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg"
+                        placeholder="Describe block representation..."
+                      />
+                    </div>
+
+                    <div className="w-full h-px bg-slate-200 my-2" />
+
+                    {/* Image Sizing Customizers Aspect Ratios */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-500 font-bold block">Aspect Ratio</label>
+                      <div className="grid grid-cols-3 gap-1 text-[9px] font-bold text-center">
+                        {(['auto', 'square', 'video', 'portrait', 'wide'] as const).map(ratio => (
+                          <button
+                            key={ratio}
+                            type="button"
+                            onClick={() => onUpdateBlock(selectedBlock.id, {
+                              content: { ...selectedBlock.content, imageAspectRatio: ratio }
+                            })}
+                            className={`py-1 rounded border capitalize transition-all ${
+                              (selectedBlock.content.imageAspectRatio || 'auto') === ratio
+                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                : 'bg-white border-slate-200 hover:bg-slate-100/50'
+                            }`}
+                          >
+                            {ratio}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Image Fit Option */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-500 font-bold block">Image Scale Style (Fit)</label>
+                      <div className="grid grid-cols-3 gap-1 text-[9px] font-bold text-center">
+                        {(['cover', 'contain', 'fill'] as const).map(fitVar => (
+                          <button
+                            key={fitVar}
+                            type="button"
+                            onClick={() => onUpdateBlock(selectedBlock.id, {
+                              content: { ...selectedBlock.content, imageFit: fitVar }
+                            })}
+                            className={`py-1 rounded border capitalize transition-all ${
+                              (selectedBlock.content.imageFit || 'cover') === fitVar
+                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                : 'bg-white border-slate-200 hover:bg-slate-100/50'
+                            }`}
+                          >
+                            {fitVar}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Image Filter Preset */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-500 font-bold block">Preset Image Filter</label>
+                      <select
+                        value={selectedBlock.content.imageFilter || 'none'}
+                        onChange={(e) => onUpdateBlock(selectedBlock.id, {
+                          content: { ...selectedBlock.content, imageFilter: e.target.value as any }
+                        })}
+                        className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg text-slate-800"
+                      >
+                        <option value="none">None (Original Color)</option>
+                        <option value="grayscale">Grayscale (Noir Classic)</option>
+                        <option value="sepia">Warm Sepia (Antique Tint)</option>
+                        <option value="blur">Dreamy Soft Blur</option>
+                        <option value="vintage">Vintage Retro Chrome</option>
+                        <option value="warm">Sunny Gold Glow</option>
+                        <option value="cool">Chilled Slate Wash</option>
+                      </select>
+                    </div>
+
+                    {/* Custom Outline Borders */}
+                    <div className="space-y-2 pt-1 border-t border-slate-200/50">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+                        <span>Border Outline Thickness</span>
+                        <span className="font-mono text-indigo-600 font-extrabold">{selectedBlock.content.imageBorderWidth || 0}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={8}
+                        step={1}
+                        value={selectedBlock.content.imageBorderWidth || 0}
+                        onChange={(e) => onUpdateBlock(selectedBlock.id, {
+                          content: { ...selectedBlock.content, imageBorderWidth: parseInt(e.target.value) }
+                        })}
+                        className="w-full accent-indigo-600 cursor-pointer"
+                      />
+
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-[10px] text-slate-500 font-bold">Border Outline Color</span>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="color"
+                            value={selectedBlock.content.imageBorderColor || '#cbd5e1'}
+                            onChange={(e) => onUpdateBlock(selectedBlock.id, {
+                              content: { ...selectedBlock.content, imageBorderColor: e.target.value }
+                            })}
+                            className="w-6 h-6 rounded border border-slate-200 bg-transparent cursor-pointer"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
