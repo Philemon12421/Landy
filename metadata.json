@@ -1,0 +1,6 @@
+{
+  "name": "Landy",
+  "description": "A high-fidelity minimalist no-code landing page builder featuring responsive pre-built layout blocks, live inline typography and layout editors, real-time responsive previews, full undo/redo state management, HTML/React code export, and a shared community template registry.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
