@@ -1,409 +1,329 @@
-import { Block, StyleConfig, ProjectState, BlockType } from '../types';
-
-export const DEFAULT_STYLE_CONFIG: StyleConfig = {
-  background: '#ffffff',
-  theme: 'minimal_modern',
-  fontFamily: 'Inter, system-ui',
-  uiStyle: 'canva_like_clean_editor',
-  radius: '12px',
-  shadows: 'soft_elevation',
-  spacingSystem: '8px_grid',
-  animationSpeed: '150ms'
-};
-
-export const createDefaultNavbar = (id = 'navbar-1'): Block => ({
-  id,
-  type: 'navbar',
-  name: 'Modern Clean Navigation',
-  styles: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    bgColor: '#ffffff',
-    textColor: '#1e293b',
-    brandColor: '#4f46e5',
-    borderRadius: 'none',
-    shadow: 'soft',
-    align: 'left'
-  },
-  content: {
-    brandName: 'Landy',
-    logoUrl: '',
-    links: [
-      { label: 'Features', url: '#features' },
-      { label: 'Pricing', url: '#pricing' },
-      { label: 'Reviews', url: '#reviews' },
-      { label: 'Contact', url: '#contact' }
-    ],
-    primaryBtnText: 'Get Started',
-    primaryBtnUrl: '#get-started'
-  }
-});
-
-export const createDefaultHero = (id = 'hero-1'): Block => ({
-  id,
-  type: 'hero_section',
-  name: 'Elegant Headline Hero',
-  styles: {
-    paddingTop: 80,
-    paddingBottom: 80,
-    bgColor: '#f8fafc',
-    textColor: '#0f172a',
-    brandColor: '#4f46e5',
-    borderRadius: 'xl',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    title: 'Build landing pages that convert like magic.',
-    subtitle: 'No Code Editor',
-    description: 'Empower your marketing team to craft stunning, responsive landing pages in minutes. Drag, edit inline, adjust visual styling, and deploy with complete ease.',
-    primaryBtnText: 'Start Building Free',
-    primaryBtnUrl: '#get-started',
-    secondaryBtnText: 'Watch Video Demo',
-    secondaryBtnUrl: '#video',
-    imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
-    imageAlt: 'Landy Platform Dashboard Preview'
-  }
-});
-
-export const createDefaultFeatures = (id = 'features-1'): Block => ({
-  id,
-  type: 'features_grid',
-  name: 'Multi-Column Feature Grid',
-  styles: {
-    paddingTop: 64,
-    paddingBottom: 64,
-    bgColor: '#ffffff',
-    textColor: '#1e293b',
-    brandColor: '#4f46e5',
-    borderRadius: 'xl',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    title: 'Engineered for simplicity and power',
-    subtitle: 'Interactive Features',
-    description: 'We analyzed thousands of high-converting landing pages to engineer pre-built blocks that look gorgeous right out of the box.',
-    features: [
-      {
-        icon: 'Sparkles',
-        title: 'Canva-level Simplicity',
-        description: 'Double click to edit text inline, drag blocks to order, and adjust margins instantly on-screen.'
-      },
-      {
-        icon: 'Layers',
-        title: 'Pixel-Perfect Components',
-        description: 'Choose from a rich library of predesigned sections, complete with custom responsive layouts.'
-      },
-      {
-        icon: 'Smartphone',
-        title: 'Fully Responsive Canvas',
-        description: 'Simulate mobile, tablet, and desktop views beautifully with our built-in device frames.'
-      },
-      {
-        icon: 'Code2',
-        title: 'Clean Export Code',
-        description: 'Export clean HTML/Tailwind templates or custom React TypeScript files instantly with one tap.'
-      },
-      {
-        icon: 'History',
-        title: 'Infinite Undo & Redo',
-        description: 'We track every element displacement, visual change, and alignment tweak so you never lose work.'
-      },
-      {
-        icon: 'CloudUpload',
-        title: 'Community Gallery',
-        description: 'Publish your designs to the public timeline, and clone community designs into your canvas.'
-      }
-    ]
-  }
-});
-
-export const createDefaultTestimonials = (id = 'testimonials-1'): Block => ({
-  id,
-  type: 'testimonials',
-  name: 'Social Proof Carousel',
-  styles: {
-    paddingTop: 64,
-    paddingBottom: 64,
-    bgColor: '#f8fafc',
-    textColor: '#0f172a',
-    brandColor: '#4f46e5',
-    borderRadius: 'xl',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    title: 'Adored by progressive marketers worldwide',
-    subtitle: 'Testimonials',
-    description: 'See how teams are building fast marketing funnels and capturing higher-quality leads with Landy.',
-    testimonials: [
-      {
-        quote: 'Landy has completely replaced our bloated visual site builders. Creating high-fidelity responsive marketing pages takes literally 10 minutes now. The HTML export is impeccably clean!',
-        author: 'Sarah Jenkins',
-        role: 'VP of Marketing, SaaSify',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80'
-      },
-      {
-        quote: 'As a designer, I am very picky about typography and layouts. Landy is the first tool that doesn\'t distort styling. What you see is exactly what you get. The neo-brutalist theme presets are stunning!',
-        author: 'Marcus Chen',
-        role: 'Lead UI/UX Designer, CraftStudio',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80'
-      }
-    ]
-  }
-});
-
-export const createDefaultPricing = (id = 'pricing-1'): Block => ({
-  id,
-  type: 'pricing_cards',
-  name: 'High-Conversion Pricing',
-  styles: {
-    paddingTop: 64,
-    paddingBottom: 64,
-    bgColor: '#ffffff',
-    textColor: '#1e293b',
-    brandColor: '#4f46e5',
-    borderRadius: 'xl',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    title: 'Transparent pricing, scale as you grow',
-    subtitle: 'Pricing Plans',
-    description: 'Select the optimal package for your design operations. Save up to 20% on annual billing.',
-    pricingPlans: [
-      {
-        name: 'Starter',
-        price: '$0',
-        period: 'forever',
-        features: [
-          'Up to 3 landing projects',
-          'Full visual Canva style editor',
-          'Standard inline text editing',
-          'Local project storage'
-        ],
-        btnText: 'Claim Free Forever',
-        popular: false
-      },
-      {
-        name: 'Pro Web Builder',
-        price: '$19',
-        period: 'per month',
-        features: [
-          'Unlimited projects',
-          'Full HTML/CSS/JS code export',
-          'Clean React component output',
-          'Publish to Public Gallery timeline',
-          'Interactive video & custom forms',
-          'Priority updates & design tokens'
-        ],
-        btnText: 'Start 14-Day Free Trial',
-        popular: true
-      },
-      {
-        name: 'Enterprise',
-        price: 'Custom',
-        period: 'billed annually',
-        features: [
-          'Multi-user shared workspaces',
-          'Custom brand alignment domains',
-          'Dedicated CRM Webhook triggers',
-          'SLA 99.9% uptime guarantees',
-          '24/7 dedicated design advocate'
-        ],
-        btnText: 'Connect and Book Demo',
-        popular: false
-      }
-    ]
-  }
-});
-
-export const createDefaultCTA = (id = 'cta-1'): Block => ({
-  id,
-  type: 'cta_block',
-  name: 'Minimal Call-to-Action',
-  styles: {
-    paddingTop: 48,
-    paddingBottom: 48,
-    bgColor: '#4f46e5',
-    textColor: '#ffffff',
-    brandColor: '#ffffff',
-    borderRadius: 'xl',
-    shadow: 'heavy',
-    align: 'center'
-  },
-  content: {
-    title: 'Ready to double your sign-up conversions?',
-    subtitle: 'Accelerate Growth',
-    description: 'Join over 12,000+ digital creators and companies building beautiful web landing pages in moments.',
-    primaryBtnText: 'Launch Land Builder Now',
-    primaryBtnUrl: '#get-started',
-    secondaryBtnText: 'Browse Templates',
-    secondaryBtnUrl: '#gallery'
-  }
-});
-
-export const createDefaultContact = (id = 'contact-1'): Block => ({
-  id,
-  type: 'contact_form',
-  name: 'Interactive Contact/Lead Capture Form',
-  styles: {
-    paddingTop: 56,
-    paddingBottom: 56,
-    bgColor: '#f8fafc',
-    textColor: '#1e293b',
-    brandColor: '#4f46e5',
-    borderRadius: 'xl',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    title: 'Capture incoming leads instantly',
-    subtitle: 'Contact Us',
-    description: 'Our gorgeous, responsive lead form works automatically. Entries are processed client-side with full visual validation state feedback.',
-    formFields: [
-      { label: 'Full Name', placeholder: 'Jane Doe', type: 'text' },
-      { label: 'Work Email Address', placeholder: 'jane@company.com', type: 'email' },
-      { label: 'Tell us about your project', placeholder: 'Hi there, we need...', type: 'textarea' }
-    ],
-    formBtnText: 'Submit Inquiry',
-    formEmailTarget: 'inquiries@landy.sh'
-  }
-});
-
-export const createDefaultImageBlock = (id = 'image-1'): Block => ({
-  id,
-  type: 'image_block',
-  name: 'Visual Frame block',
-  styles: {
-    paddingTop: 40,
-    paddingBottom: 40,
-    bgColor: '#ffffff',
-    textColor: '#1e293b',
-    brandColor: '#4f46e5',
-    borderRadius: 'xl',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    imageUrl: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80',
-    imageAlt: 'Co-workers analyzing responsive landing mockups collaboratively',
-    description: 'Fully responsive custom visual frame showing responsive layouts on target breakpoints.'
-  }
-});
-
-export const createDefaultVideoEmbed = (id = 'video-1'): Block => ({
-  id,
-  type: 'video_embed',
-  name: 'Custom Video Embed Player',
-  styles: {
-    paddingTop: 40,
-    paddingBottom: 40,
-    bgColor: '#f8fafc',
-    textColor: '#1e293b',
-    brandColor: '#4f46e5',
-    borderRadius: 'xl',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', // Default video embed placeholder link
-    title: 'How Landy works in under 60 seconds',
-    description: 'Watch this quick visual breakdown of inline styles, grid layouts, and code exports.'
-  }
-});
-
-export const createDefaultFooter = (id = 'footer-1'): Block => ({
-  id,
-  type: 'footer',
-  name: 'Polished Bottom Footer',
-  styles: {
-    paddingTop: 32,
-    paddingBottom: 32,
-    bgColor: '#0f172a',
-    textColor: '#94a3b8',
-    brandColor: '#4f46e5',
-    borderRadius: 'none',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    brandName: 'Landy',
-    copyright: '© 2026 Landy Technologies Inc. All rights reserved. Built with Canva-level simplicity.',
-    links: [
-      { label: 'Privacy Policy', url: '#' },
-      { label: 'Terms of Service', url: '#' },
-      { label: 'Security Protocols', url: '#' },
-      { label: 'Lead API Status', url: '#' }
-    ]
-  }
-});
-
-export const createDefaultDivider = (id = 'divider-1'): Block => ({
-  id,
-  type: 'divider',
-  name: 'Horizontal Section Divider',
-  styles: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    bgColor: '#ffffff',
-    textColor: '#cbd5e1',
-    brandColor: '#4f46e5',
-    borderRadius: 'none',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    dividerStyle: 'solid'
-  }
-});
-
-export const createDefaultSpacer = (id = 'spacer-1'): Block => ({
-  id,
-  type: 'spacer',
-  name: 'Empty spacing padding section',
-  styles: {
-    paddingTop: 0,
-    paddingBottom: 0,
-    bgColor: '#ffffff',
-    textColor: '#1e293b',
-    brandColor: '#4f46e5',
-    borderRadius: 'none',
-    shadow: 'none',
-    align: 'center'
-  },
-  content: {
-    spacerHeight: 48
-  }
-});
+import { Block, BlockType, ProjectState } from '../types';
 
 export const createBlockByType = (type: BlockType, id: string): Block => {
+  const base = {
+    id,
+    type,
+    styles: {
+      paddingTop: 64,
+      paddingBottom: 64,
+      paddingLeft: 0,
+      paddingRight: 0,
+      bgColor: '#ffffff',
+      textColor: '#0f172a',
+      brandColor: '#4f46e5',
+      borderRadius: 'xl' as const,
+      shadow: 'none' as const,
+      align: 'left' as const,
+      borderWidth: 0,
+      borderColor: '#e2e8f0',
+      borderStyle: 'none' as const,
+      useGradient: false,
+      gradientFrom: '#4f46e5',
+      gradientTo: '#7c3aed',
+      gradientDirection: 'to-r' as const,
+      maxWidth: '7xl' as const,
+    },
+    content: {}
+  };
+
   switch (type) {
-    case 'navbar': return createDefaultNavbar(id);
-    case 'hero_section': return createDefaultHero(id);
-    case 'features_grid': return createDefaultFeatures(id);
-    case 'testimonials': return createDefaultTestimonials(id);
-    case 'pricing_cards': return createDefaultPricing(id);
-    case 'cta_block': return createDefaultCTA(id);
-    case 'contact_form': return createDefaultContact(id);
-    case 'image_block': return createDefaultImageBlock(id);
-    case 'video_embed': return createDefaultVideoEmbed(id);
-    case 'footer': return createDefaultFooter(id);
-    case 'divider': return createDefaultDivider(id);
-    case 'spacer': return createDefaultSpacer(id);
+    case 'navbar':
+      return {
+        ...base,
+        name: 'Navigation Bar',
+        styles: { ...base.styles, paddingTop: 16, paddingBottom: 16, bgColor: '#ffffff', shadow: 'soft' },
+        content: {
+          brandName: 'YourBrand',
+          links: [
+            { label: 'Features', url: '#features' },
+            { label: 'Pricing', url: '#pricing' },
+            { label: 'About', url: '#about' }
+          ],
+          primaryBtnText: 'Get Started',
+          primaryBtnUrl: '#',
+          showNavCta: true,
+          navbarStyle: 'default'
+        }
+      };
+
+    case 'hero_section':
+      return {
+        ...base,
+        name: 'Hero Section',
+        styles: { ...base.styles, paddingTop: 96, paddingBottom: 96, bgColor: '#f8fafc', align: 'center' },
+        content: {
+          subtitle: 'Introducing v2.0',
+          title: 'Build Beautiful Landing Pages in Minutes',
+          description: 'The no-code page builder that turns your ideas into stunning, high-converting landing pages. No design skills required.',
+          primaryBtnText: 'Start Building Free',
+          primaryBtnUrl: '#',
+          secondaryBtnText: 'See Examples',
+          secondaryBtnUrl: '#',
+          primaryBtnStyle: 'filled',
+          secondaryBtnStyle: 'outline'
+        }
+      };
+
+    case 'features_grid':
+      return {
+        ...base,
+        name: 'Features Grid',
+        styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
+        content: {
+          subtitle: 'Why Choose Us',
+          title: 'Everything you need to succeed',
+          description: 'Packed with powerful features to help you build, launch, and grow faster than ever.',
+          features: [
+            { icon: 'Sparkles', title: 'AI-Powered Design', description: 'Smart suggestions that adapt to your brand and industry automatically.' },
+            { icon: 'Zap', title: 'Lightning Fast', description: 'Pages that load in under a second, keeping visitors engaged and converting.' },
+            { icon: 'Shield', title: 'Enterprise Security', description: 'Bank-grade encryption and compliance built into every project.' },
+            { icon: 'BarChart', title: 'Analytics Built-In', description: 'Real-time insights on visitors, clicks, and conversions out of the box.' },
+            { icon: 'Globe', title: 'Global CDN', description: 'Deployed to 200+ edge locations worldwide for instant availability.' },
+            { icon: 'Code', title: 'Clean Code Export', description: 'Export pixel-perfect HTML or React code ready for production use.' }
+          ]
+        }
+      };
+
+    case 'stats_block':
+      return {
+        ...base,
+        name: 'Stats / Numbers',
+        styles: { ...base.styles, paddingTop: 64, paddingBottom: 64, bgColor: '#0f172a', textColor: '#f8fafc' },
+        content: {
+          subtitle: 'By The Numbers',
+          title: 'Trusted by thousands of creators',
+          stats: [
+            { value: '50K', label: 'Happy Customers', suffix: '+' },
+            { value: '99.9', label: 'Uptime SLA', suffix: '%' },
+            { value: '2M', label: 'Pages Created', suffix: '+' },
+            { value: '4.9', label: 'Average Rating', prefix: '⭐' }
+          ],
+          statsLayout: 'row'
+        }
+      };
+
+    case 'text_block':
+      return {
+        ...base,
+        name: 'Text Block',
+        styles: { ...base.styles, paddingTop: 40, paddingBottom: 40, align: 'left' },
+        content: {
+          textContent: 'Add your custom text here. Click to edit this content and make it your own. Use this block for any long-form text, article introductions, policy content, or rich editorial copy.',
+          textTag: 'p',
+          textFontSize: 16,
+          textFontWeight: '400',
+          textLineHeight: 1.8,
+          textLetterSpacing: 0,
+          textDecoration: 'none',
+          textTransform: 'none',
+          textMaxWidth: '3xl'
+        }
+      };
+
+    case 'logo_bar':
+      return {
+        ...base,
+        name: 'Logo Bar / Trusted By',
+        styles: { ...base.styles, paddingTop: 48, paddingBottom: 48, bgColor: '#f8fafc' },
+        content: {
+          logoBarTitle: 'Trusted by teams at',
+          logos: [
+            { name: 'Stripe', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg' },
+            { name: 'Notion', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/45/Notion_app_logo.png' },
+            { name: 'Linear', logoUrl: 'https://asset.brandfetch.io/idJz-fGD_q/idg5HGnIcW.png' },
+            { name: 'Vercel', logoUrl: 'https://asset.brandfetch.io/idXnFQRBiM/idg1xLlBnK.png' },
+            { name: 'Figma', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg' }
+          ]
+        }
+      };
+
+    case 'faq_block':
+      return {
+        ...base,
+        name: 'FAQ Section',
+        styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
+        content: {
+          subtitle: 'FAQ',
+          title: 'Frequently asked questions',
+          description: 'Everything you need to know about the product and billing.',
+          faqs: [
+            { question: 'How does the free trial work?', answer: 'You get full access to all features for 14 days, no credit card required. After the trial, choose a plan that fits your needs.' },
+            { question: 'Can I export my projects?', answer: 'Yes! Export to clean HTML/CSS or React TypeScript components that are ready for production deployment.' },
+            { question: 'Is there a team collaboration feature?', answer: 'Team plans allow multiple editors on the same project with real-time collaboration and version history.' },
+            { question: 'What payment methods do you accept?', answer: 'We accept all major credit cards, PayPal, and bank transfers for enterprise plans.' }
+          ]
+        }
+      };
+
+    case 'team_block':
+      return {
+        ...base,
+        name: 'Team Section',
+        styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
+        content: {
+          subtitle: 'Our Team',
+          title: 'The people behind the product',
+          description: 'A diverse, remote-first team obsessed with building tools creators love.',
+          team: [
+            { name: 'Alex Morgan', role: 'Founder & CEO', bio: 'Former eng lead at Stripe. Building the future of no-code.', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80' },
+            { name: 'Sarah Chen', role: 'Head of Design', bio: 'Ex-Figma designer. Passionate about beautiful, functional interfaces.', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80' },
+            { name: 'Marcus Webb', role: 'CTO', bio: 'Full-stack wizard. Previously led infrastructure at Notion.', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80' }
+          ]
+        }
+      };
+
+    case 'testimonials':
+      return {
+        ...base,
+        name: 'Testimonials',
+        styles: { ...base.styles, paddingTop: 80, paddingBottom: 80, bgColor: '#f8fafc' },
+        content: {
+          subtitle: 'What Customers Say',
+          title: 'Loved by thousands of creators',
+          testimonials: [
+            { quote: 'This tool completely transformed how we build landing pages. We went from 2 weeks to 2 hours per campaign.', author: 'Jessica Lin', role: 'Marketing Director at Acme Corp', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80' },
+            { quote: 'The code export is incredible — clean, semantic, and ready to drop into our React app. Worth every penny.', author: 'Raj Patel', role: 'Senior Engineer at TechCo', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80' },
+            { quote: 'My conversion rate increased 40% after switching to pages built with this tool. The templates are stunning.', author: 'Emma Rodriguez', role: 'Indie SaaS Founder', avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=120&q=80' },
+            { quote: 'Finally a builder that gives designers control without sacrificing speed. My clients are blown away every time.', author: 'David Kim', role: 'Freelance Designer', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80' }
+          ]
+        }
+      };
+
+    case 'pricing_cards':
+      return {
+        ...base,
+        name: 'Pricing Plans',
+        styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
+        content: {
+          subtitle: 'Simple Pricing',
+          title: 'Choose the plan that fits you',
+          description: 'Start free, scale as you grow. No hidden fees, cancel anytime.',
+          pricingPlans: [
+            { name: 'Starter', price: '$0', period: 'month', features: ['3 projects', '10 blocks per page', 'HTML export', 'Community support'], btnText: 'Start Free', popular: false },
+            { name: 'Pro', price: '$29', period: 'month', features: ['Unlimited projects', 'All block types', 'HTML + React export', 'Priority support', 'Custom domain', 'Analytics'], btnText: 'Start Pro Trial', popular: true },
+            { name: 'Team', price: '$79', period: 'month', features: ['Everything in Pro', '5 team seats', 'Collaboration tools', 'Dedicated account manager', 'Custom integrations', 'SLA guarantee'], btnText: 'Contact Sales', popular: false }
+          ]
+        }
+      };
+
+    case 'contact_form':
+      return {
+        ...base,
+        name: 'Contact Form',
+        styles: { ...base.styles, paddingTop: 80, paddingBottom: 80, align: 'center' },
+        content: {
+          title: "Let's work together",
+          description: 'Have a project in mind? Fill out the form below and we\'ll get back to you within 24 hours.',
+          formFields: [
+            { label: 'Full Name', placeholder: 'Jane Smith', type: 'text' },
+            { label: 'Email Address', placeholder: 'jane@example.com', type: 'email' },
+            { label: 'Company', placeholder: 'Your company name', type: 'text' },
+            { label: 'Message', placeholder: 'Tell us about your project...', type: 'textarea' }
+          ],
+          formBtnText: 'Send Message'
+        }
+      };
+
+    case 'cta_block':
+      return {
+        ...base,
+        name: 'Call to Action',
+        styles: { ...base.styles, paddingTop: 80, paddingBottom: 80, bgColor: '#4f46e5', textColor: '#ffffff', align: 'center' },
+        content: {
+          title: 'Ready to build something amazing?',
+          description: 'Join over 50,000 creators who are already building with Landy. Start your free 14-day trial today.',
+          primaryBtnText: 'Start Building Free',
+          primaryBtnUrl: '#',
+          secondaryBtnText: 'View Demo',
+          secondaryBtnUrl: '#'
+        }
+      };
+
+    case 'image_block':
+      return {
+        ...base,
+        name: 'Image Block',
+        styles: { ...base.styles, paddingTop: 48, paddingBottom: 48 },
+        content: {
+          imageUrl: '',
+          imageAlt: 'Featured image',
+          description: '',
+          imageAspectRatio: 'video',
+          imageFit: 'cover',
+          imageFilter: 'none',
+          imageBorderWidth: 0,
+          imageBorderColor: '#e2e8f0'
+        }
+      };
+
+    case 'video_embed':
+      return {
+        ...base,
+        name: 'Video Embed',
+        styles: { ...base.styles, paddingTop: 64, paddingBottom: 64, align: 'center' },
+        content: {
+          title: 'See it in action',
+          description: 'Watch how easy it is to build your perfect landing page.',
+          videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+        }
+      };
+
+    case 'divider':
+      return {
+        ...base,
+        name: 'Divider Line',
+        styles: { ...base.styles, paddingTop: 8, paddingBottom: 8 },
+        content: { dividerStyle: 'solid' }
+      };
+
+    case 'spacer':
+      return {
+        ...base,
+        name: 'Layout Spacer',
+        styles: { ...base.styles, paddingTop: 0, paddingBottom: 0 },
+        content: { spacerHeight: 48 }
+      };
+
+    case 'footer':
+      return {
+        ...base,
+        name: 'Footer',
+        styles: { ...base.styles, paddingTop: 48, paddingBottom: 48, bgColor: '#0f172a', textColor: '#94a3b8' },
+        content: {
+          brandName: 'YourBrand',
+          copyright: `© ${new Date().getFullYear()} YourBrand. All rights reserved.`,
+          links: [
+            { label: 'Privacy Policy', url: '#' },
+            { label: 'Terms of Service', url: '#' },
+            { label: 'Contact', url: '#' }
+          ]
+        }
+      };
+
+    default:
+      return { ...base, name: 'Unknown Block' };
   }
 };
 
 export const INITIAL_PROJECT: ProjectState = {
-  name: 'Untitled Landing Page',
-  style: DEFAULT_STYLE_CONFIG,
+  name: 'My Landing Page',
+  style: {
+    background: '#ffffff',
+    theme: 'minimal_modern',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    uiStyle: 'canva_like_clean_editor',
+    radius: '12px',
+    shadows: 'soft_elevation',
+    spacingSystem: '8px_grid',
+    animationSpeed: '150ms'
+  },
   blocks: [
-    createDefaultNavbar('navbar-init'),
-    createDefaultHero('hero-init'),
-    createDefaultDivider('divider-init'),
-    createDefaultFeatures('features-init'),
-    createDefaultContact('contact-init'),
-    createDefaultFooter('footer-init')
+    createBlockByType('navbar', 'navbar-default'),
+    createBlockByType('hero_section', 'hero-default'),
+    createBlockByType('stats_block', 'stats-default'),
+    createBlockByType('features_grid', 'features-default'),
+    createBlockByType('cta_block', 'cta-default'),
+    createBlockByType('footer', 'footer-default')
   ]
 };
