@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ProjectState, Block, SelectionState, BlockType } from '../types';
-import { 
-  ArrowUp, ArrowDown, Trash2, Copy, Sparkles, Navigation, 
-  Layers, CheckCircle, Image as ImageIcon, PlayCircle, Eye, Mail, Star, Check
+import {
+  ArrowUp, ArrowDown, Trash2, Copy, Sparkles, Star, Check,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 
 interface CanvasAreaProps {
@@ -35,73 +35,49 @@ export default function CanvasArea({
   onAddBlock
 }: CanvasAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Selected Block Pixel Dimensions detector (Responsive Inspector)
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
-
-  // Drag and drop block reordering states
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [dragOverPos, setDragOverPos] = useState<'top' | 'bottom'>('top');
+  // FAQ open state for preview
+  const [openFaqIdx, setOpenFaqIdx] = useState<Record<string, number | null>>({});
 
-  // Dynamically monitor component bounds in real time
   useEffect(() => {
-    if (!selection.blockId || isPreviewMode) {
-      setDimensions(null);
-      return;
-    }
-
-    const measureActiveNode = () => {
-      const el = document.getElementById(`canvas-section-node-sec_${selection.blockId}`);
-      if (el) {
-        setDimensions({
-          width: Math.round(el.getBoundingClientRect().width),
-          height: Math.round(el.getBoundingClientRect().height)
-        });
-      }
+    if (!selection.blockId || isPreviewMode) { setDimensions(null); return; }
+    const measure = () => {
+      const el = document.getElementById(`canvas-block-${selection.blockId}`);
+      if (el) setDimensions({ width: Math.round(el.getBoundingClientRect().width), height: Math.round(el.getBoundingClientRect().height) });
     };
-
-    measureActiveNode();
-
-    const el = document.getElementById(`canvas-section-node-sec_${selection.blockId}`);
+    measure();
+    const el = document.getElementById(`canvas-block-${selection.blockId}`);
     if (!el) return;
-
-    const ro = new ResizeObserver(() => {
-      measureActiveNode();
-    });
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
-
-    // Also track during mouse movements/drags
-    window.addEventListener('resize', measureActiveNode);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', measureActiveNode);
-    };
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, [selection.blockId, isPreviewMode, viewport, zoom, project.blocks]);
 
-  // Translate width based on viewport frame selection
   const getViewportWidth = () => {
     switch (viewport) {
-      case 'mobile': return '375px';
+      case 'mobile': return '390px';
       case 'tablet': return '768px';
       case 'laptop': return '1280px';
-      case 'desktop': return '100%';
       default: return '100%';
     }
   };
 
   const getViewportHeight = () => {
     switch (viewport) {
-      case 'mobile': return '680px';
-      case 'tablet': return '900px';
+      case 'mobile': return '844px';
+      case 'tablet': return '1024px';
       default: return 'auto';
     }
   };
 
-  const radiusClass = (r: string) => {
+  const rcls = (r: string) => {
     switch (r) {
       case 'none': return 'rounded-none';
-      case 'md': return 'rounded-md';
+      case 'md': return 'rounded-lg';
       case 'xl': return 'rounded-2xl';
       case '3xl': return 'rounded-3xl';
       case 'full': return 'rounded-full';
@@ -109,7 +85,7 @@ export default function CanvasArea({
     }
   };
 
-  const shadowClass = (s: string) => {
+  const scls = (s: string) => {
     switch (s) {
       case 'none': return 'shadow-none';
       case 'soft': return 'shadow-md';
@@ -118,284 +94,290 @@ export default function CanvasArea({
     }
   };
 
-  const getThemedCardClass = (block: Block) => {
-    const isNeon = project.style.theme === 'neo_brutalist';
-    const isGlass = project.style.theme === 'glassmorphism';
-    const isCosmic = project.style.theme === 'cosmic_dark';
-
-    const roundnessPreset = radiusClass(block.styles.borderRadius || project.style.radius);
-
-    if (isNeon) {
-      return `p-6 bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all rounded-none text-slate-950`;
-    }
-
-    if (isGlass) {
-      return `p-6 bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-xl hover:bg-white/15 transition-all ${roundnessPreset}`;
-    }
-
-    if (isCosmic) {
-      return `p-6 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:shadow-lg transition-all text-slate-100 ${roundnessPreset}`;
-    }
-
-    // Default: Minimal Modern
-    return `p-6 bg-white border border-slate-100/90 hover:border-slate-200 shadow-sm hover:shadow transition-all text-slate-800 ${roundnessPreset}`;
-  };
-
-  const getImageCustomStyles = (block: Block, defaultUrl: string) => {
-    const customUrl = block.content.imageUrl || defaultUrl;
-    const aspect = block.content.imageAspectRatio || 'auto';
-    const fit = block.content.imageFit || 'cover';
-    const filter = block.content.imageFilter || 'none';
-    const borderWidth = typeof block.content.imageBorderWidth !== 'undefined' ? Number(block.content.imageBorderWidth) : 0;
-    const borderColor = block.content.imageBorderColor || '#cbd5e1';
-
-    let filterStyle = '';
-    if (filter === 'grayscale') filterStyle = 'grayscale(100%)';
-    else if (filter === 'blur') filterStyle = 'blur(5px)';
-    else if (filter === 'sepia') filterStyle = 'sepia(80%)';
-    else if (filter === 'vintage') filterStyle = 'sepia(40%) contrast(125%) saturate(120%) hue-rotate(-10deg)';
-    else if (filter === 'warm') filterStyle = 'saturate(130%) contrast(105%) sepia(8%)';
-    else if (filter === 'cool') filterStyle = 'hue-rotate(12deg) saturate(95%) brightness(105%)';
-
-    const aspectClasses: Record<string, string> = {
-      'auto': 'aspect-auto h-auto',
-      'square': 'aspect-square',
-      'video': 'aspect-video',
-      'portrait': 'aspect-[3/4]',
-      'wide': 'aspect-[21/9]'
-    };
-
-    const fitClasses: Record<string, string> = {
-      'cover': 'object-cover',
-      'contain': 'object-contain bg-slate-50/50',
-      'fill': 'object-fill'
-    };
-
-    const aspectClass = aspectClasses[aspect] || 'aspect-auto h-auto';
-    const fitClass = fitClasses[fit] || 'object-cover';
-    const roundness = radiusClass(block.styles.borderRadius || project.style.radius);
-    const shadow = shadowClass(block.styles.shadow || project.style.shadows);
-
-    return {
-      src: customUrl,
-      className: `w-full max-h-[460px] border transition-all duration-300 ${aspectClass} ${fitClass} ${roundness} ${shadow}`,
-      style: {
-        filter: filterStyle || undefined,
-        borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
-        borderStyle: borderWidth > 0 ? 'solid' : undefined,
-        borderColor: borderWidth > 0 ? borderColor : undefined,
-      }
-    };
-  };
-
-  const handleTextChange = (blockId: string, field: string, newValue: string) => {
-    const block = project.blocks.find(b => b.id === blockId);
-    if (block) {
-      onUpdateBlock(blockId, {
-        content: {
-          ...block.content,
-          [field]: newValue
-        }
-      });
+  const maxWCls = (mw?: string) => {
+    switch (mw) {
+      case 'full': return 'max-w-full';
+      case '5xl': return 'max-w-5xl';
+      case '4xl': return 'max-w-4xl';
+      case '3xl': return 'max-w-3xl';
+      case '2xl': return 'max-w-2xl';
+      default: return 'max-w-7xl';
     }
   };
 
-  // Styles based on theme
-  const getThemeSectionStyles = (block: Block) => {
-    const isNeon = project.style.theme === 'neo_brutalist';
-    const isGlass = project.style.theme === 'glassmorphism';
-    
-    if (isNeon) {
+  const getSectionBg = (block: Block): React.CSSProperties => {
+    if (block.styles.useGradient) {
+      const dirMap: Record<string, string> = {
+        'to-r': 'to right',
+        'to-b': 'to bottom',
+        'to-br': 'to bottom right',
+        'to-tr': 'to top right'
+      };
+      const dir = dirMap[block.styles.gradientDirection || 'to-r'] || 'to right';
       return {
-        borderBottom: '4px solid #000000',
-        borderRadius: '0px',
-        backgroundColor: block.styles.bgColor,
+        background: `linear-gradient(${dir}, ${block.styles.gradientFrom || '#4f46e5'}, ${block.styles.gradientTo || '#7c3aed'})`,
         color: block.styles.textColor,
-        fontFamily: project.style.fontFamily
+        fontFamily: block.styles.fontFamily || project.style.fontFamily
       };
     }
-
-    if (isGlass) {
-      return {
-        backdropFilter: 'blur(16px)',
-        backgroundColor: `${block.styles.bgColor}22`, // semi-transparent hex
-        borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-        color: block.styles.textColor,
-        fontFamily: project.style.fontFamily
-      };
-    }
-
-    // Default: Minimal modern
     return {
       backgroundColor: block.styles.bgColor,
       color: block.styles.textColor,
-      fontFamily: project.style.fontFamily,
-      borderBottom: '1px solid rgba(226, 232, 240, 0.5)'
+      fontFamily: block.styles.fontFamily || project.style.fontFamily,
+      ...(block.styles.borderWidth && block.styles.borderWidth > 0 ? {
+        borderWidth: `${block.styles.borderWidth}px`,
+        borderStyle: block.styles.borderStyle || 'solid',
+        borderColor: block.styles.borderColor || '#e2e8f0'
+      } : {})
     };
   };
 
-  // Central render block content helper to avoid code duplication across views
+  const getThemeSectionStyles = (block: Block): React.CSSProperties => {
+    const isNeon = project.style.theme === 'neo_brutalist';
+    const isGlass = project.style.theme === 'glassmorphism';
+    const base = getSectionBg(block);
+
+    if (isNeon) return { ...base, borderBottom: '3px solid #000', fontFamily: block.styles.fontFamily || project.style.fontFamily };
+    if (isGlass) return { ...base, backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.12)' };
+    return { ...base, borderBottom: '1px solid rgba(226,232,240,0.4)' };
+  };
+
+  const getCardClass = (block: Block) => {
+    const isNeon = project.style.theme === 'neo_brutalist';
+    const isGlass = project.style.theme === 'glassmorphism';
+    const isCosmic = project.style.theme === 'cosmic_dark';
+    const r = rcls(block.styles.borderRadius || project.style.radius);
+
+    if (isNeon) return `p-6 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all rounded-none`;
+    if (isGlass) return `p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-xl ${r}`;
+    if (isCosmic) return `p-6 bg-slate-900 border border-slate-700 hover:border-slate-600 transition-all ${r}`;
+    return `p-6 bg-white border border-slate-100 hover:border-slate-200 shadow-sm hover:shadow transition-all ${r}`;
+  };
+
+  const handleTextChange = (blockId: string, field: string, value: string) => {
+    const block = project.blocks.find(b => b.id === blockId);
+    if (block) onUpdateBlock(blockId, { content: { ...block.content, [field]: value } });
+  };
+
+  const renderBtn = (text: string, brandColor: string, style: 'filled' | 'outline' | 'ghost' = 'filled', textColor: string = '#fff', rClass: string = 'rounded-xl') => {
+    if (style === 'outline') return (
+      <span className={`px-6 py-3 font-bold text-xs border-2 transition-all inline-block ${rClass}`}
+        style={{ borderColor: brandColor, color: brandColor, backgroundColor: 'transparent' }}>
+        {text}
+      </span>
+    );
+    if (style === 'ghost') return (
+      <span className={`px-6 py-3 font-bold text-xs transition-all inline-block ${rClass}`}
+        style={{ color: brandColor, backgroundColor: 'transparent' }}>
+        {text} →
+      </span>
+    );
+    return (
+      <span className={`px-6 py-3 font-bold text-xs text-white shadow-md transition-all inline-block ${rClass}`}
+        style={{ backgroundColor: brandColor, color: textColor }}>
+        {text}
+      </span>
+    );
+  };
+
   const renderBlockContent = (block: Block) => {
-    const brandColor = block.styles.brandColor || '#4f46e5';
-    const textColor = block.styles.textColor || '#1e293b';
+    const brand = block.styles.brandColor || '#4f46e5';
+    const text = block.styles.textColor || '#0f172a';
+    const rClass = rcls(block.styles.borderRadius || project.style.radius);
+    const mwClass = maxWCls(block.styles.maxWidth);
+    const alignClass = block.styles.align === 'center' ? 'text-center' : block.styles.align === 'right' ? 'text-right' : 'text-left';
+    const flexAlign = block.styles.align === 'center' ? 'justify-center' : block.styles.align === 'right' ? 'justify-end' : 'justify-start';
 
     switch (block.type) {
+
       case 'navbar':
         return (
-          <div className="max-w-7xl mx-auto flex items-center justify-between py-2">
-            <span 
+          <div className={`${mwClass} mx-auto flex items-center justify-between gap-4 flex-wrap`}>
+            <span
               contentEditable={!isPreviewMode}
               suppressContentEditableWarning
-              onBlur={(e) => handleTextChange(block.id, 'brandName', e.currentTarget.textContent || '')}
-              className="font-black text-xl tracking-tight cursor-text focus:outline-dashed focus:outline-indigo-500 focus:outline-2 focus:bg-indigo-50/50 px-1 py-0.5 rounded transition-colors"
-              style={{ color: brandColor }}
+              onBlur={e => handleTextChange(block.id, 'brandName', e.currentTarget.textContent || '')}
+              className="font-black text-xl tracking-tight cursor-text focus:outline-dashed focus:outline-2 focus:outline-indigo-500 px-1 rounded"
+              style={{ color: brand }}
             >
-              {block.content.brandName || 'Landy'}
+              {block.content.brandName || 'Brand'}
             </span>
-            
-            <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider" style={{ color: block.styles.textColor || '#1e293b' }}>
-              {(block.content.links || []).map((link, lidx) => (
-                <a
-                  key={lidx}
-                  href={link.url || '#'}
-                  className="hover:opacity-75 transition-all duration-150"
-                  onClick={(e) => {
-                    if (!isPreviewMode) e.preventDefault();
-                  }}
-                >
+
+            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold flex-1 justify-center">
+              {(block.content.links || []).map((link, i) => (
+                <a key={i} href={link.url} onClick={e => !isPreviewMode && e.preventDefault()}
+                  className="hover:opacity-70 transition-opacity" style={{ color: text }}>
                   {link.label}
                 </a>
               ))}
-            </div>
+            </nav>
 
             {block.content.primaryBtnText && (
               <span
                 contentEditable={!isPreviewMode}
                 suppressContentEditableWarning
-                onBlur={(e) => handleTextChange(block.id, 'primaryBtnText', e.currentTarget.textContent || '')}
-                className={`px-5 py-2 text-xs font-bold text-white shadow-sm cursor-text focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-opacity active:opacity-90 ${radiusClass(block.styles.borderRadius || project.style.radius)}`}
-                style={{ backgroundColor: brandColor }}
+                onBlur={e => handleTextChange(block.id, 'primaryBtnText', e.currentTarget.textContent || '')}
+                className={`px-4 py-2 text-xs font-bold text-white cursor-text focus:outline-none hidden sm:inline-block ${rClass}`}
+                style={{ backgroundColor: brand }}
               >
                 {block.content.primaryBtnText}
               </span>
             )}
+            {/* Mobile menu indicator */}
+            <div className="md:hidden flex flex-col gap-1 cursor-pointer">
+              <span className="w-5 h-0.5 rounded" style={{ backgroundColor: text }} />
+              <span className="w-5 h-0.5 rounded" style={{ backgroundColor: text }} />
+              <span className="w-5 h-0.5 rounded" style={{ backgroundColor: text }} />
+            </div>
           </div>
         );
 
       case 'hero_section':
         return (
-          <div className={`max-w-7xl mx-auto grid grid-cols-1 ${block.content.imageUrl ? 'lg:grid-cols-2 gap-12 lg:gap-16' : ''} items-center text-${block.styles.align}`}>
+          <div className={`${mwClass} mx-auto grid grid-cols-1 ${block.content.imageUrl ? 'lg:grid-cols-2 gap-12 lg:gap-16' : ''} items-center ${alignClass}`}>
             <div className="space-y-6">
               {block.content.subtitle && (
-                <div className={`flex ${block.styles.align === 'center' ? 'justify-center' : block.styles.align === 'right' ? 'justify-end' : 'justify-start'}`}>
-                  <span 
-                    contentEditable={!isPreviewMode}
-                    suppressContentEditableWarning
-                    onBlur={(e) => handleTextChange(block.id, 'subtitle', e.currentTarget.textContent || '')}
-                    className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full cursor-text"
-                    style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
-                  >
+                <div className={`flex ${flexAlign}`}>
+                  <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest ${rClass}`}
+                    style={{ backgroundColor: `${brand}18`, color: brand }}>
                     {block.content.subtitle}
                   </span>
                 </div>
               )}
-              
-              <h1 
+              <h1
                 contentEditable={!isPreviewMode}
                 suppressContentEditableWarning
-                onBlur={(e) => handleTextChange(block.id, 'title', e.currentTarget.textContent || '')}
-                className="text-3xl md:text-5xl lg:text-5xl font-black tracking-tight leading-tight cursor-text focus:bg-slate-50/70 p-1 rounded-xl transition-colors"
-                style={{ color: block.styles.textColor }}
+                onBlur={e => handleTextChange(block.id, 'title', e.currentTarget.textContent || '')}
+                className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight cursor-text focus:outline-none focus:bg-black/5 rounded-lg px-1"
+                style={{ color: text }}
               >
                 {block.content.title}
               </h1>
-
-              <p 
+              <p
                 contentEditable={!isPreviewMode}
                 suppressContentEditableWarning
-                onBlur={(e) => handleTextChange(block.id, 'description', e.currentTarget.textContent || '')}
-                className="text-sm md:text-base leading-relaxed opacity-80 cursor-text focus:bg-slate-50/70 p-1 rounded-xl transition-colors"
+                onBlur={e => handleTextChange(block.id, 'description', e.currentTarget.textContent || '')}
+                className="text-sm md:text-base leading-relaxed opacity-75 cursor-text focus:outline-none focus:bg-black/5 rounded px-1 max-w-2xl"
+                style={{ margin: block.styles.align === 'center' ? '0 auto' : undefined }}
               >
                 {block.content.description}
               </p>
-
-              <div className={`pt-2 flex flex-wrap items-center gap-4 ${
-                block.styles.align === 'center' ? 'justify-center' : block.styles.align === 'right' ? 'justify-end' : 'justify-start'
-              }`}>
-                {block.content.primaryBtnText && (
-                  <span
-                    contentEditable={!isPreviewMode}
-                    suppressContentEditableWarning
-                    onBlur={(e) => handleTextChange(block.id, 'primaryBtnText', e.currentTarget.textContent || '')}
-                    className={`px-6 py-3 font-extrabold text-xs text-white shadow-md cursor-text hover:bg-opacity-90 active:scale-95 transition-all ${radiusClass(block.styles.borderRadius || project.style.radius)}`}
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    {block.content.primaryBtnText}
-                  </span>
-                )}
-                {block.content.secondaryBtnText && (
-                  <span
-                    contentEditable={!isPreviewMode}
-                    suppressContentEditableWarning
-                    onBlur={(e) => handleTextChange(block.id, 'secondaryBtnText', e.currentTarget.textContent || '')}
-                    className={`px-6 py-3 font-bold text-xs border bg-white/50 backdrop-blur-sm cursor-text hover:bg-white active:scale-95 transition-all ${radiusClass(block.styles.borderRadius || project.style.radius)}`}
-                    style={{ borderColor: `${textColor}25`, color: textColor }}
-                  >
-                    {block.content.secondaryBtnText}
-                  </span>
-                )}
+              <div className={`flex flex-wrap gap-3 pt-2 ${flexAlign}`}>
+                {block.content.primaryBtnText && renderBtn(block.content.primaryBtnText, brand, block.content.primaryBtnStyle as any || 'filled', '#fff', rClass)}
+                {block.content.secondaryBtnText && renderBtn(block.content.secondaryBtnText, brand, block.content.secondaryBtnStyle as any || 'outline', text, rClass)}
               </div>
             </div>
-
             {block.content.imageUrl && (
-              <div className="flex justify-center">
-                <img 
-                  alt={block.content.imageAlt || 'Hero Banner'}
-                  referrerPolicy="no-referrer"
-                  {...getImageCustomStyles(block, 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80')}
-                />
+              <div className="flex justify-center mt-8 lg:mt-0">
+                <img src={block.content.imageUrl} alt={block.content.imageAlt || 'Hero'} referrerPolicy="no-referrer"
+                  className={`w-full max-h-[460px] object-cover ${rClass} ${scls(block.styles.shadow)}`} />
               </div>
             )}
           </div>
         );
 
+      case 'text_block': {
+        const Tag = (block.content.textTag || 'p') as any;
+        const maxWMap: Record<string, string> = { '3xl': '48rem', '2xl': '42rem', '4xl': '56rem', 'full': '100%' };
+        const mw = maxWMap[block.content.textMaxWidth || '3xl'] || '48rem';
+        return (
+          <div className={`${mwClass} mx-auto ${alignClass}`}>
+            <Tag
+              contentEditable={!isPreviewMode}
+              suppressContentEditableWarning
+              onBlur={(e: React.FocusEvent<HTMLElement>) => handleTextChange(block.id, 'textContent', e.currentTarget.textContent || '')}
+              className="cursor-text focus:outline-none focus:bg-black/5 rounded-lg px-1 whitespace-pre-wrap"
+              style={{
+                fontSize: `${block.content.textFontSize || 16}px`,
+                fontWeight: block.content.textFontWeight || '400',
+                lineHeight: block.content.textLineHeight || 1.8,
+                letterSpacing: `${(block.content.textLetterSpacing || 0) / 100}em`,
+                textDecoration: block.content.textDecoration || 'none',
+                textTransform: block.content.textTransform || 'none',
+                color: text,
+                maxWidth: mw,
+                margin: block.styles.align === 'center' ? '0 auto' : undefined,
+                borderLeft: block.content.textTag === 'blockquote' ? `4px solid ${brand}` : undefined,
+                paddingLeft: block.content.textTag === 'blockquote' ? '1.5rem' : undefined,
+                fontStyle: block.content.textTag === 'blockquote' ? 'italic' : undefined,
+                opacity: block.content.textTag === 'blockquote' ? 0.85 : 1,
+              }}
+            >
+              {block.content.textContent || 'Click to edit text...'}
+            </Tag>
+          </div>
+        );
+      }
+
+      case 'stats_block':
+        return (
+          <div className={`${mwClass} mx-auto`}>
+            {(block.content.subtitle || block.content.title) && (
+              <div className={`mb-12 ${alignClass}`}>
+                {block.content.subtitle && (
+                  <span className="text-xs font-black uppercase tracking-widest block mb-2" style={{ color: brand }}>{block.content.subtitle}</span>
+                )}
+                {block.content.title && (
+                  <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: text }}>{block.content.title}</h2>
+                )}
+              </div>
+            )}
+            <div className={`grid ${block.content.statsLayout === 'grid' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-4'} gap-6 md:gap-8`}>
+              {(block.content.stats || []).map((stat, i) => (
+                <div key={i} className="text-center space-y-2">
+                  <div className="text-3xl md:text-5xl font-black tracking-tight" style={{ color: brand }}>
+                    {stat.prefix}{stat.value}{stat.suffix}
+                  </div>
+                  <div className="text-xs font-semibold uppercase tracking-wider opacity-70" style={{ color: text }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'logo_bar':
+        return (
+          <div className={`${mwClass} mx-auto text-center space-y-6`}>
+            {block.content.logoBarTitle && (
+              <p className="text-xs font-semibold uppercase tracking-widest opacity-50" style={{ color: text }}>{block.content.logoBarTitle}</p>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 opacity-60 grayscale hover:opacity-80 transition-all">
+              {(block.content.logos || []).map((logo, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <img src={logo.logoUrl} alt={logo.name} referrerPolicy="no-referrer"
+                    className="h-7 w-auto object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  <span className="text-sm font-black tracking-tight hidden" style={{ color: text }}>{logo.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
       case 'features_grid':
         return (
-          <div className="max-w-7xl mx-auto space-y-12">
-            <div className={`max-w-3xl ${block.styles.align === 'center' ? 'mx-auto text-center' : block.styles.align === 'right' ? 'ml-auto text-right' : 'text-left'} space-y-2`}>
-              {block.content.subtitle && (
-                <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brandColor }}>
-                  {block.content.subtitle}
-                </span>
-              )}
-              <h2 
+          <div className={`${mwClass} mx-auto space-y-12`}>
+            <div className={`max-w-3xl ${block.styles.align === 'center' ? 'mx-auto text-center' : ''} space-y-3`}>
+              {block.content.subtitle && <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brand }}>{block.content.subtitle}</span>}
+              <h2
                 contentEditable={!isPreviewMode}
                 suppressContentEditableWarning
-                onBlur={(e) => handleTextChange(block.id, 'title', e.currentTarget.textContent || '')}
-                className="text-2xl md:text-4xl font-black tracking-tight cursor-text focus:bg-slate-50 p-1 rounded-xl transition-colors"
-                style={{ color: block.styles.textColor }}
+                onBlur={e => handleTextChange(block.id, 'title', e.currentTarget.textContent || '')}
+                className="text-2xl md:text-4xl font-black tracking-tight cursor-text"
+                style={{ color: text }}
               >
                 {block.content.title}
               </h2>
-              {block.content.description && (
-                <p className="text-xs md:text-sm opacity-75 leading-relaxed max-w-2xl mx-auto">
-                  {block.content.description}
-                </p>
-              )}
+              {block.content.description && <p className="text-sm opacity-70 leading-relaxed">{block.content.description}</p>}
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-              {(block.content.features || []).map((feat, fidx) => (
-                <div 
-                  key={fidx} 
-                  className={getThemedCardClass(block)}
-                >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(block.content.features || []).map((feat, i) => (
+                <div key={i} className={getCardClass(block)}>
                   <div className="space-y-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm" style={{ backgroundColor: `${brandColor}12`, color: brandColor }}>
-                      <Star className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${brand}15`, color: brand }}>
+                      <Star className="w-5 h-5" />
                     </div>
                     <h3 className="font-extrabold text-sm">{feat.title}</h3>
-                    <p className="text-xs leading-relaxed opacity-85">{feat.description}</p>
+                    <p className="text-xs leading-relaxed opacity-80">{feat.description}</p>
                   </div>
                 </div>
               ))}
@@ -405,33 +387,24 @@ export default function CanvasArea({
 
       case 'testimonials':
         return (
-          <div className="max-w-7xl mx-auto space-y-12">
-            <div className="max-w-2xl mx-auto text-center space-y-2">
-              {block.content.subtitle && (
-                <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brandColor }}>
-                  {block.content.subtitle}
-                </span>
-              )}
-              <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: block.styles.textColor }}>{block.content.title}</h2>
+          <div className={`${mwClass} mx-auto space-y-12`}>
+            <div className="max-w-2xl mx-auto text-center space-y-3">
+              {block.content.subtitle && <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brand }}>{block.content.subtitle}</span>}
+              <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: text }}>{block.content.title}</h2>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              {(block.content.testimonials || []).map((test, tid) => (
-                <div 
-                  key={tid} 
-                  className={getThemedCardClass(block)}
-                >
-                  <p className="text-xs md:text-sm italic leading-relaxed opacity-90">"{test.quote}"</p>
-                  <div className="flex items-center gap-3 border-t border-slate-55/15 pt-4 mt-4">
-                    <img 
-                      src={test.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'} 
-                      alt={test.author} 
-                      referrerPolicy="no-referrer"
-                      className="w-9 h-9 rounded-full object-cover shadow-sm border border-slate-100/10" 
-                    />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {(block.content.testimonials || []).map((t, i) => (
+                <div key={i} className={getCardClass(block)}>
+                  <div className="flex mb-3 gap-0.5">
+                    {[...Array(5)].map((_, si) => <span key={si} style={{ color: '#fbbf24' }}>★</span>)}
+                  </div>
+                  <p className="text-xs md:text-sm italic leading-relaxed opacity-90 mb-4">"{t.quote}"</p>
+                  <div className="flex items-center gap-3 border-t border-slate-100/20 pt-4">
+                    <img src={t.avatarUrl} alt={t.author} referrerPolicy="no-referrer"
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     <div>
-                      <h4 className="text-xs font-black">{test.author}</h4>
-                      <span className="text-[10px] opacity-75 font-bold block">{test.role}</span>
+                      <h4 className="text-xs font-black">{t.author}</h4>
+                      <span className="text-[10px] opacity-60 font-medium">{t.role}</span>
                     </div>
                   </div>
                 </div>
@@ -442,102 +415,65 @@ export default function CanvasArea({
 
       case 'pricing_cards':
         return (
-          <div className="max-w-7xl mx-auto space-y-12">
-            <div className="max-w-2xl mx-auto text-center space-y-2">
-              {block.content.subtitle && (
-                <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brandColor }}>
-                  {block.content.subtitle}
-                </span>
-              )}
-              <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: block.styles.textColor }}>{block.content.title}</h2>
-              {block.content.description && <p className="text-xs opacity-75 font-medium">{block.content.description}</p>}
+          <div className={`${mwClass} mx-auto space-y-12`}>
+            <div className="max-w-2xl mx-auto text-center space-y-3">
+              {block.content.subtitle && <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brand }}>{block.content.subtitle}</span>}
+              <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: text }}>{block.content.title}</h2>
+              {block.content.description && <p className="text-sm opacity-70">{block.content.description}</p>}
             </div>
-
-            <div className={`grid grid-cols-1 ${block.content.pricingPlans?.length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' : block.content.pricingPlans?.length === 1 ? 'max-w-md mx-auto grid-cols-1' : 'md:grid-cols-3'} gap-6 pt-4`}>
-              {(block.content.pricingPlans || []).map((plan, pidx) => {
-                const isNeon = project.style.theme === 'neo_brutalist';
-                const popularRing = plan.popular ? (isNeon ? 'ring-3 ring-black shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'ring-2 ring-indigo-600 scale-102 z-10 shadow-lg') : '';
-                return (
-                  <div 
-                    key={pidx} 
-                    className={`${getThemedCardClass(block)} relative overflow-hidden transition-all ${popularRing}`}
-                  >
-                    {plan.popular && (
-                      <span 
-                        className="absolute top-2 right-2 px-3 py-1 text-white rounded text-[8.5px] font-black tracking-widest uppercase shadow-sm"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        POPULAR
-                      </span>
-                    )}
-                    
-                    <div className="space-y-5">
-                      <h3 className="font-extrabold text-[10px] opacity-60 uppercase tracking-widest">{plan.name}</h3>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black">{plan.price}</span>
-                        <span className="text-[10px] opacity-60 font-bold uppercase">/{plan.period}</span>
-                      </div>
-                      
-                      <div className="w-full h-px bg-slate-150/10" />
-
-                      <ul className="space-y-3.5 text-xs font-medium">
-                        {(plan.features || []).map((feat, f_idx) => (
-                          <li key={f_idx} className="flex items-start gap-2">
-                            <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: brandColor }} />
-                            <span className="opacity-95">{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <button 
-                      className="w-full mt-8 py-3 bg-slate-50/10 hover:bg-slate-100/20 border border-slate-100/15 transition-all text-xs font-extrabold rounded-xl"
-                      style={{ color: block.styles.textColor }}
-                    >
-                      {plan.btnText}
-                    </button>
+            <div className={`grid grid-cols-1 ${(block.content.pricingPlans?.length || 0) >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-3xl mx-auto'} gap-6`}>
+              {(block.content.pricingPlans || []).map((plan, i) => (
+                <div key={i} className={`${getCardClass(block)} relative ${plan.popular ? 'ring-2 ring-indigo-600 scale-[1.02] z-10' : ''}`}>
+                  {plan.popular && (
+                    <span className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-white text-[9px] font-black uppercase tracking-widest ${rClass}`}
+                      style={{ backgroundColor: brand }}>MOST POPULAR</span>
+                  )}
+                  <h3 className="font-black text-xs uppercase tracking-widest opacity-60 mb-3">{plan.name}</h3>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-4xl font-black">{plan.price}</span>
+                    <span className="text-xs opacity-50 font-medium">/{plan.period}</span>
                   </div>
-                );
-              })}
+                  <ul className="space-y-2.5 mb-6">
+                    {plan.features.map((f, fi) => (
+                      <li key={fi} className="flex items-start gap-2 text-xs">
+                        <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: brand }} />
+                        <span className="opacity-90">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button className={`w-full py-3 text-xs font-black transition-all ${rClass}`}
+                    style={{ backgroundColor: plan.popular ? brand : 'transparent', color: plan.popular ? '#fff' : text, border: `2px solid ${brand}` }}>
+                    {plan.btnText}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         );
 
       case 'contact_form':
         return (
-          <div className="max-w-xl mx-auto space-y-6 text-center">
-            <div className="space-y-2">
-              <h2 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: block.styles.textColor }}>{block.content.title}</h2>
-              {block.content.description && <p className="text-xs leading-relaxed opacity-75 font-medium">{block.content.description}</p>}
+          <div className={`${mwClass} mx-auto text-center space-y-8`}>
+            <div className="space-y-3">
+              <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: text }}>{block.content.title}</h2>
+              {block.content.description && <p className="text-sm opacity-70 max-w-md mx-auto leading-relaxed">{block.content.description}</p>}
             </div>
-
-            <div className={`${getThemedCardClass(block)} text-left space-y-4 shadow-md`}>
-              {(block.content.formFields || []).map((field, f_idx) => (
-                <div key={f_idx} className="space-y-1">
-                  <label className="text-[10px] font-bold opacity-60 uppercase tracking-wider block">{field.label}</label>
+            <div className={`${getCardClass(block)} text-left space-y-4 max-w-lg mx-auto shadow-lg`}>
+              {(block.content.formFields || []).map((field, i) => (
+                <div key={i} className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-wider opacity-60 block">{field.label}</label>
                   {field.type === 'textarea' ? (
-                    <textarea 
-                      placeholder={field.placeholder} 
-                      rows={2} 
-                      className="w-full p-3 text-xs border border-slate-200/20 bg-slate-50/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-inherit" 
-                      disabled 
-                    />
+                    <textarea placeholder={field.placeholder} rows={3} disabled
+                      className="w-full p-3 text-xs border border-slate-200/20 bg-slate-50/10 focus:outline-none rounded-xl font-medium resize-none" />
                   ) : (
-                    <input 
-                      type={field.type} 
-                      placeholder={field.placeholder} 
-                      className="w-full p-3 text-xs border border-slate-200/20 bg-slate-50/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-inherit" 
-                      disabled 
-                    />
+                    <input type={field.type} placeholder={field.placeholder} disabled
+                      className="w-full p-3 text-xs border border-slate-200/20 bg-slate-50/10 focus:outline-none rounded-xl font-medium" />
                   )}
                 </div>
               ))}
-              <button 
-                type="button" 
-                className={`w-full py-3.5 mt-2 text-white font-extrabold rounded-xl text-xs shadow-md transition-opacity active:opacity-90 cursor-pointer`}
-                style={{ backgroundColor: brandColor }}
-              >
-                {block.content.formBtnText || 'Submit Message'}
+              <button type="button" className={`w-full py-3.5 mt-2 text-white font-black text-xs ${rClass} transition-opacity`}
+                style={{ backgroundColor: brand }}>
+                {block.content.formBtnText || 'Submit'}
               </button>
             </div>
           </div>
@@ -545,241 +481,213 @@ export default function CanvasArea({
 
       case 'cta_block':
         return (
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <h2 
+          <div className={`${mwClass} mx-auto text-center space-y-6`}>
+            <h2
               contentEditable={!isPreviewMode}
               suppressContentEditableWarning
-              onBlur={(e) => handleTextChange(block.id, 'title', e.currentTarget.textContent || '')}
-              className="text-2xl md:text-4xl font-black tracking-tight cursor-text focus:bg-white/20 p-1 rounded-xl transition-colors"
-              style={{ color: block.styles.textColor }}
+              onBlur={e => handleTextChange(block.id, 'title', e.currentTarget.textContent || '')}
+              className="text-2xl md:text-4xl font-black tracking-tight cursor-text"
+              style={{ color: text }}
             >
               {block.content.title}
             </h2>
-            
-            <p 
+            <p
               contentEditable={!isPreviewMode}
               suppressContentEditableWarning
-              onBlur={(e) => handleTextChange(block.id, 'description', e.currentTarget.textContent || '')}
-              className="text-xs md:text-sm max-w-2xl mx-auto leading-relaxed opacity-95 cursor-text focus:bg-white/20 p-1 rounded-xl transition-colors"
+              onBlur={e => handleTextChange(block.id, 'description', e.currentTarget.textContent || '')}
+              className="text-sm max-w-xl mx-auto leading-relaxed opacity-90 cursor-text"
             >
               {block.content.description}
             </p>
-
-            {block.content.primaryBtnText && (
-              <div className="pt-2">
-                <span
-                  contentEditable={!isPreviewMode}
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleTextChange(block.id, 'primaryBtnText', e.currentTarget.textContent || '')}
-                  className={`px-6 py-3 font-black text-xs inline-block shadow-lg cursor-text hover:opacity-90 active:scale-95 transition-all ${radiusClass(block.styles.borderRadius || project.style.radius)}`}
-                  style={{ backgroundColor: brandColor, color: block.styles.bgColor }}
-                >
-                  {block.content.primaryBtnText}
+            <div className="flex flex-wrap gap-3 justify-center pt-2">
+              {block.content.primaryBtnText && renderBtn(block.content.primaryBtnText, block.styles.bgColor === '#4f46e5' || block.styles.bgColor.startsWith('#') ? '#fff' : brand, 'filled', block.styles.bgColor, rClass)}
+              {block.content.secondaryBtnText && (
+                <span className={`px-6 py-3 font-bold text-xs border-2 border-white/30 cursor-text transition-all inline-block ${rClass}`} style={{ color: text }}>
+                  {block.content.secondaryBtnText}
                 </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         );
 
       case 'image_block':
         return (
-          <div className="max-w-4xl mx-auto text-center space-y-4">
-            <img 
-              alt={block.content.imageAlt || 'Gallery Showcase'} 
-              referrerPolicy="no-referrer"
-              {...getImageCustomStyles(block, 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80')}
-            />
-            {block.content.description && (
-              <p className="text-xs opacity-60 italic font-medium">
-                {block.content.description}
-              </p>
+          <div className={`${mwClass} mx-auto text-center space-y-4`}>
+            {block.content.imageUrl ? (
+              <img src={block.content.imageUrl} alt={block.content.imageAlt || ''} referrerPolicy="no-referrer"
+                className={`w-full object-cover ${rClass} ${scls(block.styles.shadow)}`}
+                style={{ maxHeight: '460px', filter: block.content.imageFilter && block.content.imageFilter !== 'none' ? getFilterStyle(block.content.imageFilter) : undefined }} />
+            ) : (
+              <div className={`w-full h-48 bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center ${rClass}`}>
+                <span className="text-slate-400 text-sm font-medium">Add image URL in the panel →</span>
+              </div>
             )}
+            {block.content.description && <p className="text-xs opacity-60 italic">{block.content.description}</p>}
           </div>
         );
 
       case 'video_embed':
         return (
-          <div className="max-w-3xl mx-auto text-center space-y-4">
-            <h3 className="font-extrabold text-sm text-slate-800">{block.content.title}</h3>
-            {block.content.description && <p className="text-xs text-slate-500 font-medium">{block.content.description}</p>}
-            <div className={`aspect-video w-full overflow-hidden shadow-md border border-slate-200 ${radiusClass(block.styles.borderRadius || project.style.radius)}`}>
-              <iframe 
-                src={block.content.videoUrl} 
-                className="w-full h-full bg-black" 
-                title="Iframe Video player component"
-              />
+          <div className={`${mwClass} mx-auto text-center space-y-4`}>
+            <h3 className="font-black text-base" style={{ color: text }}>{block.content.title}</h3>
+            {block.content.description && <p className="text-xs opacity-70">{block.content.description}</p>}
+            <div className={`aspect-video w-full overflow-hidden ${rClass} border border-slate-200/30`}>
+              {block.content.videoUrl ? (
+                <iframe src={block.content.videoUrl} className="w-full h-full" title="Video" allowFullScreen />
+              ) : (
+                <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                  <span className="text-slate-400 text-sm">Add video URL in the panel →</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'faq_block': {
+        const faqKey = block.id;
+        return (
+          <div className={`${mwClass} mx-auto space-y-10`}>
+            <div className={`max-w-2xl ${block.styles.align === 'center' ? 'mx-auto text-center' : ''} space-y-3`}>
+              {block.content.subtitle && <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brand }}>{block.content.subtitle}</span>}
+              <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: text }}>{block.content.title}</h2>
+              {block.content.description && <p className="text-sm opacity-70">{block.content.description}</p>}
+            </div>
+            <div className="max-w-2xl mx-auto space-y-3">
+              {(block.content.faqs || []).map((faq, i) => {
+                const isOpen = openFaqIdx[faqKey] === i;
+                return (
+                  <div key={i} className={`${getCardClass(block)} cursor-pointer select-none`}
+                    onClick={() => setOpenFaqIdx(prev => ({ ...prev, [faqKey]: isOpen ? null : i }))}>
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="font-bold text-sm flex-1">{faq.question}</h4>
+                      {isOpen ? <ChevronUp className="w-4 h-4 mt-0.5 flex-shrink-0 opacity-50" /> : <ChevronDown className="w-4 h-4 mt-0.5 flex-shrink-0 opacity-50" />}
+                    </div>
+                    {isOpen && <p className="text-xs leading-relaxed opacity-75 mt-3 pt-3 border-t border-slate-100/20">{faq.answer}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      case 'team_block':
+        return (
+          <div className={`${mwClass} mx-auto space-y-12`}>
+            <div className={`max-w-2xl ${block.styles.align === 'center' ? 'mx-auto text-center' : ''} space-y-3`}>
+              {block.content.subtitle && <span className="text-xs font-black uppercase tracking-widest block" style={{ color: brand }}>{block.content.subtitle}</span>}
+              <h2 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: text }}>{block.content.title}</h2>
+              {block.content.description && <p className="text-sm opacity-70">{block.content.description}</p>}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(block.content.team || []).map((member, i) => (
+                <div key={i} className={`${getCardClass(block)} text-center`}>
+                  <img src={member.avatarUrl} alt={member.name} referrerPolicy="no-referrer"
+                    className="w-16 h-16 rounded-full object-cover mx-auto mb-4 ring-2 ring-white/20" />
+                  <h3 className="font-black text-sm">{member.name}</h3>
+                  <p className="text-xs font-bold mt-0.5 mb-3" style={{ color: brand }}>{member.role}</p>
+                  <p className="text-xs opacity-70 leading-relaxed">{member.bio}</p>
+                </div>
+              ))}
             </div>
           </div>
         );
 
       case 'divider':
-        return (
-          <hr 
-            className={`w-full ${
-              block.content.dividerStyle === 'dashed' 
-                ? 'border-dashed' 
-                : block.content.dividerStyle === 'dotted' 
-                  ? 'border-dotted' 
-                  : 'border-solid'
-            }`}
-            style={{ borderColor: `${textColor}25` }}
-          />
-        );
+        return <hr className={`w-full ${block.content.dividerStyle === 'dashed' ? 'border-dashed' : block.content.dividerStyle === 'dotted' ? 'border-dotted' : 'border-solid'}`}
+          style={{ borderColor: `${text}25` }} />;
 
       case 'spacer':
-        return (
-          <div style={{ height: `${block.content.spacerHeight || 48}px` }} className="w-full" />
-        );
+        return <div style={{ height: `${block.content.spacerHeight || 48}px` }} className="w-full" />;
 
       case 'footer':
         return (
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs font-semibold text-slate-500">
-            <span className="font-black text-sm tracking-tight text-slate-800">{block.content.brandName}</span>
-            <span 
+          <div className={`${mwClass} mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium flex-wrap`}>
+            <span
               contentEditable={!isPreviewMode}
               suppressContentEditableWarning
-              onBlur={(e) => handleTextChange(block.id, 'copyright', e.currentTarget.textContent || '')}
-              className="font-bold cursor-text focus:outline-none"
+              onBlur={e => handleTextChange(block.id, 'brandName', e.currentTarget.textContent || '')}
+              className="font-black text-base tracking-tight cursor-text"
+              style={{ color: brand }}
+            >
+              {block.content.brandName}
+            </span>
+            <span
+              contentEditable={!isPreviewMode}
+              suppressContentEditableWarning
+              onBlur={e => handleTextChange(block.id, 'copyright', e.currentTarget.textContent || '')}
+              className="cursor-text opacity-60"
             >
               {block.content.copyright}
             </span>
-            
-            <div className="flex gap-6 uppercase tracking-wider text-[10px]">
-              {(block.content.links || []).map((l, index) => (
-                <span key={index} className="hover:underline cursor-pointer">{l.label}</span>
+            <div className="flex flex-wrap gap-4 opacity-60">
+              {(block.content.links || []).map((l, i) => (
+                <a key={i} href={l.url} onClick={e => !isPreviewMode && e.preventDefault()} className="hover:opacity-100 transition-opacity">{l.label}</a>
               ))}
             </div>
           </div>
         );
 
       default:
-        return null;
+        return <div className="text-xs opacity-40 text-center py-4">Unknown block type: {block.type}</div>;
     }
   };
 
-  // If in PREVIEW MODE, render a completely borderless, continuous site preview
+  // Preview mode
   if (isPreviewMode) {
     return (
-      <div 
-        className="flex-1 w-full min-h-screen select-text overflow-y-auto scroll-smooth pb-24"
-        id="production-mode-viewport"
-        style={{ 
-          backgroundColor: project.style.background,
-          fontFamily: project.style.fontFamily
-        }}
-      >
-        <div className="w-full flex flex-col">
-          {project.blocks.map((block, idx) => (
-            <div 
-              key={block.id} 
-              style={{
-                ...getThemeSectionStyles(block),
-                animationDelay: `${idx * 120}ms`,
-                animationFillMode: 'both'
-              }}
-              className="w-full animate-fade-in-up opacity-0"
-            >
-              <div 
-                style={{ 
-                  paddingTop: `${block.styles.paddingTop}px`, 
-                  paddingBottom: `${block.styles.paddingBottom}px` 
-                }}
-                className="w-full md:px-16 px-8 max-w-7xl mx-auto"
-              >
-                {renderBlockContent(block)}
-              </div>
+      <div className="flex-1 w-full min-h-screen overflow-y-auto scroll-smooth"
+        style={{ backgroundColor: project.style.background, fontFamily: project.style.fontFamily }}>
+        {project.blocks.map((block, idx) => (
+          <div key={block.id} style={getThemeSectionStyles(block)}>
+            <div style={{ paddingTop: `${block.styles.paddingTop}px`, paddingBottom: `${block.styles.paddingBottom}px` }}
+              className="w-full px-4 sm:px-8 md:px-12 lg:px-16">
+              {renderBlockContent(block)}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     );
   }
 
-  // Active EDITOR WORKSPACE returning styled responsive frame simulator
+  // Editor mode
   return (
-    <div 
-      ref={containerRef}
-      className="flex-1 overflow-y-auto bg-slate-100 p-8 flex justify-center items-start min-h-0 relative select-text"
-      style={{
-        backgroundImage: 'radial-gradient(#cbd5e1 1.2px, transparent 1.2px)',
-        backgroundSize: '20px 20px'
-      }}
-      id="builder-canvas-wrapper"
+    <div ref={containerRef}
+      className="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8 flex justify-center items-start min-h-0 relative"
+      style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px' }}
     >
-      
-      {/* Simulation responsive outer laptop body */}
-      <div 
-        className={`w-full transition-all duration-300 mx-auto flex flex-col shadow-xl ${
+      <div
+        className={`w-full transition-all duration-300 mx-auto flex flex-col shadow-xl overflow-hidden ${
           viewport === 'mobile' || viewport === 'tablet'
-            ? 'bg-slate-900 border-[14px] border-slate-950 shadow-2xl rounded-[36px] overflow-hidden'
-            : 'border border-slate-200 bg-white rounded-2xl overflow-hidden'
+            ? 'bg-slate-900 border-[12px] border-slate-950 shadow-2xl rounded-[32px]'
+            : 'border border-slate-200 bg-white rounded-2xl'
         }`}
-        style={{ 
-          maxWidth: getViewportWidth(), 
+        style={{
+          maxWidth: getViewportWidth(),
           height: getViewportHeight(),
           transform: `scale(${zoom / 100})`,
           transformOrigin: 'top center'
         }}
       >
-        
-        {/* Device interactive speaker / notch frame bar */}
         {(viewport === 'mobile' || viewport === 'tablet') && (
-          <div className="h-7 w-full bg-slate-950 flex justify-center items-center shrink-0">
-            <div className="w-16 h-3.5 bg-slate-900 rounded-full flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-800" />
-            </div>
+          <div className="h-6 w-full bg-slate-950 flex justify-center items-center flex-shrink-0">
+            <div className="w-14 h-3 bg-slate-900 rounded-full" />
           </div>
         )}
 
-        {/* Real Live Editable Blocks Area container */}
-        <div 
-          className="flex-1 flex flex-col overflow-y-auto relative bg-slate-50/5"
-          style={{ backgroundColor: project.style.background }}
-          id="editor-canvas-workspace-scroll"
-        >
-          {/* Active alignment guide lines drawing over background ONLY when a block is being dragged */}
-          {draggedId && (
-            <>
-              {/* Center Alignment Snap Indicator */}
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 border-l border-dashed border-indigo-500/50 z-40 pointer-events-none flex items-center justify-start">
-                <span className="bg-slate-900 border border-slate-700 text-indigo-300 text-[8px] font-black font-mono px-2 py-0.5 rounded shadow-lg translate-y-[-160px] tracking-widest uppercase leading-none pl-1.5 flex items-center gap-1.5 pointer-events-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-                  SNAP: VERTICAL CENTER
-                </span>
-              </div>
-
-              {/* Grid outline guides - Left Margin Snapping Zone */}
-              <div className="absolute top-0 bottom-0 left-[10%] border-l border-dotted border-indigo-400/30 z-40 pointer-events-none flex items-center">
-                <span className="bg-slate-800/80 text-slate-300 text-[8px] font-mono px-1 py-0.5 rounded -translate-x-1/2 tracking-wider scale-90">
-                  MARGIN_L
-                </span>
-              </div>
-
-              {/* Grid outline guides - Right Margin Snapping Zone */}
-              <div className="absolute top-0 bottom-0 right-[10%] border-r border-dotted border-indigo-400/30 z-40 pointer-events-none flex items-center justify-end">
-                <span className="bg-slate-800/80 text-slate-300 text-[8px] font-mono px-1 py-0.5 rounded translate-x-1/2 tracking-wider scale-90">
-                  MARGIN_R
-                </span>
-              </div>
-            </>
-          )}
+        <div className="flex-1 flex flex-col overflow-y-auto"
+          style={{ backgroundColor: project.style.background }}>
 
           {project.blocks.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-[60vh] text-slate-400">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-[60vh]">
               <Sparkles className="w-10 h-10 text-indigo-400 mb-3 animate-pulse" />
-              <h4 className="font-extrabold text-slate-800 text-sm">Your Canva Landing is Clear</h4>
-              <p className="text-xs text-slate-450 max-w-xs mt-1 text-slate-400">
-                Browse blocks under the <strong>Library tab</strong> in the right-side control station to begin building!
-              </p>
-              
-              <div className="grid grid-cols-2 gap-2 mt-6 max-w-sm">
+              <h4 className="font-black text-slate-800 text-sm mb-1">Canvas is empty</h4>
+              <p className="text-xs text-slate-400 max-w-xs mb-6">Add blocks from the left panel to start building your landing page.</p>
+              <div className="grid grid-cols-2 gap-2 max-w-xs">
                 {(['navbar', 'hero_section', 'features_grid', 'cta_block'] as const).map(bt => (
-                  <button
-                    key={bt}
-                    onClick={() => onAddBlock(bt)}
-                    className="px-3.5 py-2 bg-white hover:bg-indigo-50 hover:text-indigo-650 text-indigo-600 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:border-indigo-200"
-                  >
-                    + Add {bt.split('_')[0]}
+                  <button key={bt} onClick={() => onAddBlock(bt)}
+                    className="px-3 py-2 bg-white hover:bg-indigo-50 text-indigo-600 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-wide transition-all hover:border-indigo-200 cursor-pointer">
+                    + {bt.split('_')[0]}
                   </button>
                 ))}
               </div>
@@ -792,181 +700,103 @@ export default function CanvasArea({
               return (
                 <div
                   key={block.id}
-                  id={`canvas-section-node-sec_${block.id}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelection({ blockId: block.id, elementId: null });
-                  }}
-                  draggable={!isPreviewMode}
-                  onDragStart={(e) => {
-                    if (isPreviewMode) return;
+                  id={`canvas-block-${block.id}`}
+                  onClick={e => { e.stopPropagation(); setSelection({ blockId: block.id, elementId: null }); }}
+                  draggable
+                  onDragStart={e => {
                     setDraggedId(block.id);
-                    // Standard drag data payloads
                     e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', block.id);
                   }}
-                  onDragEnd={() => {
-                    setDraggedId(null);
-                    setDragOverIdx(null);
-                  }}
-                  onDragOver={(e) => {
-                    if (isPreviewMode || !draggedId || draggedId === block.id) return;
+                  onDragEnd={() => { setDraggedId(null); setDragOverIdx(null); }}
+                  onDragOver={e => {
+                    if (!draggedId || draggedId === block.id) return;
                     e.preventDefault();
-                    
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const relativeOffset = e.clientY - rect.top;
-                    const isOverTopHalf = relativeOffset < rect.height / 2;
-                    
                     setDragOverIdx(idx);
-                    setDragOverPos(isOverTopHalf ? 'top' : 'bottom');
+                    setDragOverPos((e.clientY - rect.top) < rect.height / 2 ? 'top' : 'bottom');
                   }}
-                  onDrop={(e) => {
-                    if (isPreviewMode || !draggedId || !onReorderBlocks) return;
+                  onDrop={e => {
+                    if (!draggedId || !onReorderBlocks) return;
                     e.preventDefault();
-                    
-                    const activeDraggedId = draggedId;
-                    if (activeDraggedId === block.id) return;
-
-                    const sourceIdx = project.blocks.findIndex(b => b.id === activeDraggedId);
-                    if (sourceIdx === -1) return;
-
-                    const updatedChain = [...project.blocks];
-                    const [targetBlock] = updatedChain.splice(sourceIdx, 1);
-                    
-                    let targetIdx = project.blocks.findIndex(b => b.id === block.id);
-                    if (dragOverPos === 'bottom') {
-                      targetIdx += 1;
-                    }
-                    
-                    updatedChain.splice(targetIdx, 0, targetBlock);
-                    onReorderBlocks(updatedChain);
-
-                    setDraggedId(null);
-                    setDragOverIdx(null);
+                    const srcIdx = project.blocks.findIndex(b => b.id === draggedId);
+                    if (srcIdx === -1) return;
+                    const next = [...project.blocks];
+                    const [moved] = next.splice(srcIdx, 1);
+                    let tgt = project.blocks.findIndex(b => b.id === block.id);
+                    if (dragOverPos === 'bottom') tgt += 1;
+                    next.splice(tgt, 0, moved);
+                    onReorderBlocks(next);
+                    setDraggedId(null); setDragOverIdx(null);
                   }}
-                  className={`group relative transition-all duration-200 cursor-grab active:cursor-grabbing ${
-                    isSelected 
-                      ? 'z-20' 
-                      : 'hover:ring-2 hover:ring-indigo-150 hover:ring-offset-1 rounded-sm'
-                  } ${isGhost ? 'opacity-30 border border-dashed border-indigo-400 bg-indigo-50/10' : ''}`}
+                  className={`group relative transition-all duration-150 cursor-grab active:cursor-grabbing ${
+                    isSelected ? 'z-20' : 'hover:ring-2 hover:ring-indigo-200 hover:ring-offset-1'
+                  } ${isGhost ? 'opacity-25 scale-[0.99]' : ''}`}
                   style={getThemeSectionStyles(block)}
                 >
-                  
-                  {/* Dynamic placement snap lines previewed during drags */}
+                  {/* Drop indicator */}
                   {draggedId && dragOverIdx === idx && (
-                    <div 
-                      className={`absolute left-0 right-0 h-[4px] bg-emerald-500 animate-pulse z-50 pointer-events-none ${
-                        dragOverPos === 'top' ? 'top-0' : 'bottom-0'
-                      }`}
-                    >
-                      <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-600 shadow-xl border border-emerald-500 text-white font-mono text-[8px] font-extrabold uppercase px-2 py-0.5 rounded flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                        SNAP INDEX: {idx + (dragOverPos === 'bottom' ? 1 : 0)}
-                      </div>
-                    </div>
+                    <div className={`absolute left-0 right-0 h-1 bg-indigo-500 z-50 pointer-events-none ${dragOverPos === 'top' ? 'top-0' : 'bottom-0'}`} />
                   )}
-                  
-                  {/* Canva Selection Outline Handles */}
-                  {isSelected && (
-                    <div className="absolute -inset-1 border-2 border-indigo-600 pointer-events-none z-30 animate-fade-in shadow-sm rounded">
-                      <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full" />
-                      <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full" />
-                      <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full" />
-                      <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full" />
-                      
-                      {/* Name tag */}
-                      <div className="absolute -top-6.5 left-3 bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-md whitespace-nowrap uppercase tracking-widest leading-none">
-                        {block.name.slice(0, 24)}
-                      </div>
 
-                      {/* Responsive Inspector details badge overlay displaying actual node width and height in real time */}
+                  {/* Selection handles */}
+                  {isSelected && (
+                    <div className="absolute -inset-0.5 border-2 border-indigo-600 pointer-events-none z-30 rounded-sm">
+                      {/* Corner dots */}
+                      {['-top-1.5 -left-1.5', '-top-1.5 -right-1.5', '-bottom-1.5 -left-1.5', '-bottom-1.5 -right-1.5'].map((pos, i) => (
+                        <div key={i} className={`absolute ${pos} w-3 h-3 bg-white border-2 border-indigo-600 rounded-full`} />
+                      ))}
+                      {/* Label */}
+                      <div className="absolute -top-7 left-0 bg-indigo-600 text-white text-[9px] font-black px-2 py-1 rounded-t-md whitespace-nowrap uppercase tracking-wider leading-none">
+                        {block.name}
+                      </div>
+                      {/* Dimensions */}
                       {dimensions && (
-                        <div className="absolute -bottom-7 right-3 bg-slate-900 border border-slate-700/80 text-white text-[9.5px] font-mono font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap z-50 flex items-center gap-1.5 justify-center leading-none">
-                          <span className="text-indigo-400 text-[10px] animate-pulse">📐</span>
-                          <span className="text-slate-400 font-semibold">Inspector Bounds:</span>
-                          <span className="text-emerald-400 font-extrabold">{dimensions.width}px</span>
-                          <span className="text-slate-500">×</span>
-                          <span className="text-emerald-400 font-extrabold">{dimensions.height}px</span>
+                        <div className="absolute -bottom-7 right-0 bg-slate-900 text-white text-[9px] font-mono px-2 py-1 rounded-b-md flex items-center gap-1.5">
+                          <span className="text-emerald-400 font-bold">{dimensions.width}×{dimensions.height}px</span>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Canvas block overlay editor controller triggers */}
-                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-45 bg-slate-900 text-white rounded-xl p-1 shadow-md text-[10px] font-bold">
-                    <span className="text-slate-400 font-mono tracking-wide capitalize px-2 text-[9px] shrink-0">
-                      {block.type.replace('_', ' ')}
-                    </span>
-                    
-                    <div className="w-px h-3.5 bg-slate-700" />
-                    
-                    <button
-                      title="Move Section Up"
-                      disabled={idx === 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMoveBlock(block.id, 'up');
-                      }}
-                      className="p-1.5 hover:bg-slate-800 text-slate-200 rounded-lg disabled:opacity-30 cursor-pointer"
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      title="Move Section Down"
-                      disabled={idx === project.blocks.length - 1}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMoveBlock(block.id, 'down');
-                      }}
-                      className="p-1.5 hover:bg-slate-800 text-slate-200 rounded-lg disabled:opacity-30 cursor-pointer"
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      title="Duplicate Section"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDuplicateBlock(block.id);
-                      }}
-                      className="p-1.5 hover:bg-slate-800 text-slate-200 rounded-lg cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      title="Delete Section"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteBlock(block.id);
-                        if (isSelected) setSelection({ blockId: null, elementId: null });
-                      }}
-                      className="p-1.5 hover:bg-red-650 hover:text-red-400 text-red-500 rounded-lg cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                  {/* Block toolbar */}
+                  <div className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-40 bg-slate-900 text-white rounded-xl px-1 py-1 shadow-lg">
+                    <span className="text-slate-400 font-mono text-[9px] px-1.5 capitalize">{block.type.replace(/_/g, ' ')}</span>
+                    <div className="w-px h-3 bg-slate-700" />
+                    <button title="Up" disabled={idx === 0} onClick={e => { e.stopPropagation(); onMoveBlock(block.id, 'up'); }}
+                      className="p-1.5 hover:bg-slate-800 rounded-lg disabled:opacity-30 cursor-pointer"><ArrowUp className="w-3 h-3" /></button>
+                    <button title="Down" disabled={idx === project.blocks.length - 1} onClick={e => { e.stopPropagation(); onMoveBlock(block.id, 'down'); }}
+                      className="p-1.5 hover:bg-slate-800 rounded-lg disabled:opacity-30 cursor-pointer"><ArrowDown className="w-3 h-3" /></button>
+                    <button title="Duplicate" onClick={e => { e.stopPropagation(); onDuplicateBlock(block.id); }}
+                      className="p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer"><Copy className="w-3 h-3" /></button>
+                    <button title="Delete" onClick={e => { e.stopPropagation(); onDeleteBlock(block.id); if (isSelected) setSelection({ blockId: null, elementId: null }); }}
+                      className="p-1.5 hover:bg-red-900 text-red-400 rounded-lg cursor-pointer"><Trash2 className="w-3 h-3" /></button>
                   </div>
 
-                  {/* Rendering active template content */}
-                  <div 
-                    style={{ 
-                      paddingTop: `${block.styles.paddingTop}px`, 
-                      paddingBottom: `${block.styles.paddingBottom}px` 
-                    }}
-                    className="w-full md:px-12 px-6"
-                  >
+                  {/* Block content */}
+                  <div style={{
+                    paddingTop: `${block.styles.paddingTop}px`,
+                    paddingBottom: `${block.styles.paddingBottom}px`
+                  }} className="w-full px-4 sm:px-8 md:px-12">
                     {renderBlockContent(block)}
                   </div>
-
                 </div>
               );
             })
           )}
         </div>
-
       </div>
-
     </div>
   );
+}
+
+function getFilterStyle(filter: string): string {
+  const map: Record<string, string> = {
+    grayscale: 'grayscale(100%)',
+    blur: 'blur(4px)',
+    sepia: 'sepia(80%)',
+    vintage: 'sepia(40%) contrast(120%) saturate(110%) hue-rotate(-10deg)',
+    warm: 'saturate(130%) contrast(105%) sepia(8%)',
+    cool: 'hue-rotate(12deg) saturate(95%) brightness(105%)'
+  };
+  return map[filter] || 'none';
 }
