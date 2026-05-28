@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { ProjectState, Block, StyleConfig, SelectionState, BlockType } from '../types';
 import {
   Trash2, Copy, ArrowUp, ArrowDown, Layers, Settings, AlignLeft, AlignCenter, AlignRight,
   Check, Sparkles, Search, LayoutTemplate, SquareEqual, MessageSquare, CreditCard, Mail,
   Image, Video, Navigation, Minimize, PlayCircle, ToggleRight, Plus, PlusCircle, BarChart2,
-  Type, Users, HelpCircle, TrendingUp, Grid, Palette, ChevronDown, ChevronUp, Sliders
+  Type, Users, HelpCircle, TrendingUp, Grid, Palette, ChevronDown, ChevronUp, Sliders,
+  Link, Upload, RefreshCw, Youtube, ExternalLink, BookOpen, ShoppingBag, DollarSign,
+  Zap, Globe, Star, Camera, Film, Music, X, Eye
 } from 'lucide-react';
 
 interface RightPropertiesPanelProps {
@@ -44,6 +46,133 @@ const FONT_OPTIONS = [
 const BG_SWATCHES = ['#ffffff', '#f8fafc', '#f1f5f9', '#0f172a', '#1e293b', '#fef08a', '#ffedd5', '#ecfdf5', '#020617', '#fdf4ff', '#eff6ff', '#fff7ed'];
 const BRAND_SWATCHES = ['#4f46e5', '#2563eb', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#000000', '#0ea5e9', '#f97316', '#84cc16', '#14b8a6'];
 
+// Free stock photos from Unsplash (no API key needed for direct URLs)
+const STOCK_PHOTOS = {
+  'Business': [
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80',
+    'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80',
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80',
+    'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&q=80',
+  ],
+  'People': [
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80',
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=800&q=80',
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800&q=80',
+  ],
+  'Abstract': [
+    'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80',
+    'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&q=80',
+    'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=800&q=80',
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80',
+  ],
+  'Nature': [
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',
+    'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=800&q=80',
+    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=80',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80',
+  ],
+  'Tech': [
+    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80',
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80',
+    'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80',
+  ],
+  'Products': [
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
+    'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800&q=80',
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80',
+    'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=800&q=80',
+  ],
+};
+
+// Stock photo picker component
+const StockPhotoPicker = ({ onSelect }: { onSelect: (url: string) => void }) => {
+  const [activeCategory, setActiveCategory] = useState('Business');
+  const [hovered, setHovered] = useState<string | null>(null);
+  const categories = Object.keys(STOCK_PHOTOS);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-1">
+        {categories.map(cat => (
+          <button key={cat} onClick={() => setActiveCategory(cat)}
+            className={`px-2 py-1 text-[9px] font-bold rounded-lg border transition-all ${activeCategory === cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'}`}>
+            {cat}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {(STOCK_PHOTOS[activeCategory as keyof typeof STOCK_PHOTOS] || []).map((url, i) => (
+          <div key={i} className="relative group cursor-pointer rounded-lg overflow-hidden aspect-video"
+            onMouseEnter={() => setHovered(url)}
+            onMouseLeave={() => setHovered(null)}
+            onClick={() => onSelect(url)}>
+            <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold bg-indigo-600 px-2 py-1 rounded-lg transition-all">
+                Use Photo
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[9px] text-slate-400 text-center">Photos by Unsplash · Free to use</p>
+    </div>
+  );
+};
+
+// YouTube URL → embed URL converter
+const convertToEmbedUrl = (url: string): string => {
+  if (!url) return '';
+  // Already an embed URL
+  if (url.includes('youtube.com/embed/') || url.includes('youtu.be/embed/')) return url;
+  // YouTube watch URL
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  // Loom
+  const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+  if (loomMatch) return `https://www.loom.com/embed/${loomMatch[1]}`;
+  return url;
+};
+
+// Template presets for different page types
+const PAGE_TEMPLATES = [
+  {
+    label: '📚 Book Launch', type: 'book',
+    desc: 'Perfect for selling books, ebooks, and courses',
+    blocks: ['navbar', 'hero_section', 'features_grid', 'testimonials', 'pricing_cards', 'cta_block', 'footer'] as BlockType[]
+  },
+  {
+    label: '💰 Affiliate Page', type: 'affiliate',
+    desc: 'Product review & affiliate marketing',
+    blocks: ['navbar', 'hero_section', 'stats_block', 'features_grid', 'testimonials', 'faq_block', 'cta_block', 'footer'] as BlockType[]
+  },
+  {
+    label: '🚀 SaaS Product', type: 'saas',
+    desc: 'Software as a Service landing page',
+    blocks: ['navbar', 'hero_section', 'logo_bar', 'features_grid', 'pricing_cards', 'testimonials', 'cta_block', 'footer'] as BlockType[]
+  },
+  {
+    label: '🎨 Portfolio', type: 'portfolio',
+    desc: 'Showcase your work and projects',
+    blocks: ['navbar', 'hero_section', 'image_block', 'team_block', 'testimonials', 'contact_form', 'footer'] as BlockType[]
+  },
+  {
+    label: '🛒 Product Page', type: 'product',
+    desc: 'E-commerce style product landing',
+    blocks: ['navbar', 'hero_section', 'stats_block', 'features_grid', 'testimonials', 'faq_block', 'pricing_cards', 'footer'] as BlockType[]
+  },
+  {
+    label: '📩 Lead Capture', type: 'lead',
+    desc: 'Collect emails and leads',
+    blocks: ['navbar', 'hero_section', 'features_grid', 'contact_form', 'footer'] as BlockType[]
+  },
+];
+
 export default function RightPropertiesPanel({
   project, onChangeStyle, selection, setSelection, onUpdateBlock,
   onDeleteBlock, onDuplicateBlock, onMoveBlock, onAddBlock
@@ -53,9 +182,12 @@ export default function RightPropertiesPanel({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ spacing: true, colors: true });
+  const [showStockPhotos, setShowStockPhotos] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSection = (key: string) => setExpandedSections(p => ({ ...p, [key]: !p[key] }));
-
   const selectedBlock = project.blocks.find(b => b.id === selection.blockId);
 
   const componentOptions: ComponentOption[] = [
@@ -72,7 +204,7 @@ export default function RightPropertiesPanel({
     { type: 'cta_block', label: 'Call to Action', description: 'Full-width attention banner.', category: 'marketing', icon: Sparkles },
     { type: 'contact_form', label: 'Contact Form', description: 'Lead capture form with fields.', category: 'structure', icon: Mail },
     { type: 'image_block', label: 'Image', description: 'Image with filters, borders & captions.', category: 'rich_media', icon: Image },
-    { type: 'video_embed', label: 'Video Embed', description: 'YouTube or any iframe embed.', category: 'rich_media', icon: PlayCircle },
+    { type: 'video_embed', label: 'Video Embed', description: 'YouTube, Vimeo, or Loom video.', category: 'rich_media', icon: PlayCircle },
     { type: 'divider', label: 'Divider', description: 'Solid, dashed, or dotted separator.', category: 'structure', icon: Minimize },
     { type: 'spacer', label: 'Spacer', description: 'Adjustable blank vertical space.', category: 'structure', icon: Layers },
     { type: 'footer', label: 'Footer', description: 'Brand, copyright & page links.', category: 'header_footer', icon: ToggleRight },
@@ -91,19 +223,28 @@ export default function RightPropertiesPanel({
   });
 
   const SectionHeader = ({ title, sKey }: { title: string; sKey: string }) => (
-    <button onClick={() => toggleSection(sKey)} className="w-full flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest py-1 mb-2">
+    <button onClick={() => toggleSection(sKey)} className="w-full flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest py-1 mb-2 hover:text-slate-600 transition-colors">
       <span>{title}</span>
-      {expandedSections[sKey] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      <div className={`transition-transform duration-200 ${expandedSections[sKey] ? 'rotate-180' : ''}`}>
+        <ChevronDown className="w-3 h-3" />
+      </div>
     </button>
   );
 
   const ColorSwatch = ({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) => (
     <button onClick={onClick}
-      className={`w-full h-6 rounded-md border transition-all cursor-pointer flex items-center justify-center ${selected ? 'border-indigo-600 scale-110 shadow-sm' : 'border-slate-200 hover:scale-105'}`}
+      className={`w-full h-6 rounded-md border transition-all cursor-pointer flex items-center justify-center hover:scale-110 ${selected ? 'border-indigo-600 scale-110 shadow-sm ring-1 ring-indigo-400' : 'border-slate-200'}`}
       style={{ backgroundColor: color }}>
       {selected && <Check className={`w-3 h-3 ${['#ffffff', '#f8fafc', '#f1f5f9', '#fef08a', '#ffedd5', '#ecfdf5', '#fdf4ff', '#eff6ff', '#fff7ed'].includes(color) ? 'text-slate-800' : 'text-white'}`} />}
     </button>
   );
+
+  // Image upload handler
+  const handleImageUpload = (file: File, onUrl: (url: string) => void) => {
+    const reader = new FileReader();
+    reader.onloadend = () => onUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const renderBlockContent = () => {
     if (!selectedBlock) return null;
@@ -115,7 +256,7 @@ export default function RightPropertiesPanel({
       <div className="space-y-4">
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Content Editor</p>
 
-        {/* TEXT BLOCK */}
+        {/* ── TEXT BLOCK ── */}
         {b.type === 'text_block' && (
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -192,68 +333,38 @@ export default function RightPropertiesPanel({
                 </select>
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500">Max Width</label>
-              <select value={b.content.textMaxWidth || '3xl'} onChange={e => upd({ textMaxWidth: e.target.value })}
-                className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg">
-                <option value="2xl">Narrow (42rem)</option>
-                <option value="3xl">Default (48rem)</option>
-                <option value="4xl">Wide (56rem)</option>
-                <option value="full">Full Width</option>
-              </select>
-            </div>
           </div>
         )}
 
-        {/* STATS BLOCK */}
+        {/* ── STATS BLOCK ── */}
         {b.type === 'stats_block' && (
           <div className="space-y-4">
             <InputField label="Section Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
             <InputField label="Eyebrow Label" value={b.content.subtitle || ''} onChange={v => upd({ subtitle: v })} />
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500">Layout</label>
-              <div className="grid grid-cols-2 gap-1">
-                {(['row', 'grid'] as const).map(l => (
-                  <button key={l} onClick={() => upd({ statsLayout: l })}
-                    className={`py-1.5 text-[10px] font-bold rounded-lg border capitalize transition-all ${b.content.statsLayout === l ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600'}`}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-            </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 block">Stats Items</label>
               {(b.content.stats || []).map((stat, i) => (
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="grid grid-cols-3 gap-1.5">
-                    <input placeholder="Prefix" value={stat.prefix || ''} onChange={e => {
-                      const s = [...(b.content.stats || [])]; s[i] = { ...s[i], prefix: e.target.value }; upd({ stats: s });
-                    }} className="text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
-                    <input placeholder="Value *" value={stat.value} onChange={e => {
-                      const s = [...(b.content.stats || [])]; s[i] = { ...s[i], value: e.target.value }; upd({ stats: s });
-                    }} className="text-[11px] p-1.5 bg-white border border-slate-200 rounded font-bold" />
-                    <input placeholder="Suffix" value={stat.suffix || ''} onChange={e => {
-                      const s = [...(b.content.stats || [])]; s[i] = { ...s[i], suffix: e.target.value }; upd({ stats: s });
-                    }} className="text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
+                    <input placeholder="Prefix" value={stat.prefix || ''} onChange={e => { const s = [...(b.content.stats || [])]; s[i] = { ...s[i], prefix: e.target.value }; upd({ stats: s }); }} className="text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
+                    <input placeholder="Value *" value={stat.value} onChange={e => { const s = [...(b.content.stats || [])]; s[i] = { ...s[i], value: e.target.value }; upd({ stats: s }); }} className="text-[11px] p-1.5 bg-white border border-slate-200 rounded font-bold" />
+                    <input placeholder="Suffix" value={stat.suffix || ''} onChange={e => { const s = [...(b.content.stats || [])]; s[i] = { ...s[i], suffix: e.target.value }; upd({ stats: s }); }} className="text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
                   </div>
                   <div className="flex gap-2 items-center">
-                    <input placeholder="Label" value={stat.label} onChange={e => {
-                      const s = [...(b.content.stats || [])]; s[i] = { ...s[i], label: e.target.value }; upd({ stats: s });
-                    }} className="flex-1 text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
-                    <button onClick={() => { const s = (b.content.stats || []).filter((_, si) => si !== i); upd({ stats: s }); }}
-                      className="p-1 text-red-500 bg-red-50 rounded hover:bg-red-100 text-xs">✕</button>
+                    <input placeholder="Label" value={stat.label} onChange={e => { const s = [...(b.content.stats || [])]; s[i] = { ...s[i], label: e.target.value }; upd({ stats: s }); }} className="flex-1 text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
+                    <button onClick={() => { const s = (b.content.stats || []).filter((_, si) => si !== i); upd({ stats: s }); }} className="p-1 text-red-500 bg-red-50 rounded hover:bg-red-100 text-xs">✕</button>
                   </div>
                 </div>
               ))}
               <button onClick={() => upd({ stats: [...(b.content.stats || []), { value: '100', label: 'New Metric', suffix: '+' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add Stat
               </button>
             </div>
           </div>
         )}
 
-        {/* FAQ BLOCK */}
+        {/* ── FAQ BLOCK ── */}
         {b.type === 'faq_block' && (
           <div className="space-y-4">
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
@@ -264,27 +375,22 @@ export default function RightPropertiesPanel({
               {(b.content.faqs || []).map((faq, i) => (
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-slate-400">Item {i + 1}</span>
-                    <button onClick={() => { const f = (b.content.faqs || []).filter((_, fi) => fi !== i); upd({ faqs: f }); }}
-                      className="p-1 text-red-500 bg-red-50 rounded text-xs hover:bg-red-100">✕</button>
+                    <span className="text-[9px] font-bold text-slate-400">Question {i + 1}</span>
+                    <button onClick={() => { const f = (b.content.faqs || []).filter((_, fi) => fi !== i); upd({ faqs: f }); }} className="p-1 text-red-500 bg-red-50 rounded text-xs hover:bg-red-100">✕</button>
                   </div>
-                  <input placeholder="Question" value={faq.question} onChange={e => {
-                    const f = [...(b.content.faqs || [])]; f[i] = { ...f[i], question: e.target.value }; upd({ faqs: f });
-                  }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <textarea placeholder="Answer" rows={2} value={faq.answer} onChange={e => {
-                    const f = [...(b.content.faqs || [])]; f[i] = { ...f[i], answer: e.target.value }; upd({ faqs: f });
-                  }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg resize-none" />
+                  <input placeholder="Question" value={faq.question} onChange={e => { const f = [...(b.content.faqs || [])]; f[i] = { ...f[i], question: e.target.value }; upd({ faqs: f }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  <textarea placeholder="Answer" rows={2} value={faq.answer} onChange={e => { const f = [...(b.content.faqs || [])]; f[i] = { ...f[i], answer: e.target.value }; upd({ faqs: f }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg resize-none" />
                 </div>
               ))}
               <button onClick={() => upd({ faqs: [...(b.content.faqs || []), { question: 'New question?', answer: 'Answer here.' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add FAQ
               </button>
             </div>
           </div>
         )}
 
-        {/* TEAM BLOCK */}
+        {/* ── TEAM BLOCK ── */}
         {b.type === 'team_block' && (
           <div className="space-y-4">
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
@@ -295,51 +401,44 @@ export default function RightPropertiesPanel({
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="flex justify-between">
                     <span className="text-[9px] font-bold text-slate-400">Member {i + 1}</span>
-                    <button onClick={() => { const t = (b.content.team || []).filter((_, ti) => ti !== i); upd({ team: t }); }}
-                      className="p-1 text-red-500 bg-red-50 rounded text-xs">✕</button>
+                    <button onClick={() => { const t = (b.content.team || []).filter((_, ti) => ti !== i); upd({ team: t }); }} className="p-1 text-red-500 bg-red-50 rounded text-xs">✕</button>
                   </div>
-                  <input placeholder="Name" value={member.name} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], name: e.target.value }; upd({ team: t }); }}
-                    className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <input placeholder="Role / Title" value={member.role} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], role: e.target.value }; upd({ team: t }); }}
-                    className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <textarea placeholder="Short bio" rows={2} value={member.bio} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], bio: e.target.value }; upd({ team: t }); }}
-                    className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg resize-none" />
-                  <input placeholder="Avatar URL" value={member.avatarUrl} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], avatarUrl: e.target.value }; upd({ team: t }); }}
-                    className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  {member.avatarUrl && <img src={member.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover" />}
+                  <input placeholder="Name" value={member.name} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], name: e.target.value }; upd({ team: t }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  <input placeholder="Role / Title" value={member.role} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], role: e.target.value }; upd({ team: t }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  <textarea placeholder="Short bio" rows={2} value={member.bio} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], bio: e.target.value }; upd({ team: t }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg resize-none" />
+                  <input placeholder="Avatar URL" value={member.avatarUrl} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], avatarUrl: e.target.value }; upd({ team: t }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                 </div>
               ))}
               <button onClick={() => upd({ team: [...(b.content.team || []), { name: 'Team Member', role: 'Role', bio: 'Bio here.', avatarUrl: '' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add Member
               </button>
             </div>
           </div>
         )}
 
-        {/* LOGO BAR */}
+        {/* ── LOGO BAR ── */}
         {b.type === 'logo_bar' && (
           <div className="space-y-4">
             <InputField label="Title / Label" value={b.content.logoBarTitle || ''} onChange={v => upd({ logoBarTitle: v })} />
             <div className="space-y-2">
               {(b.content.logos || []).map((logo, i) => (
                 <div key={i} className="flex gap-2 items-center">
-                  <input placeholder="Name" value={logo.name} onChange={e => { const l = [...(b.content.logos || [])]; l[i] = { ...l[i], name: e.target.value }; upd({ logos: l }); }}
-                    className="w-1/3 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <input placeholder="Logo URL" value={logo.logoUrl} onChange={e => { const l = [...(b.content.logos || [])]; l[i] = { ...l[i], logoUrl: e.target.value }; upd({ logos: l }); }}
-                    className="flex-1 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <button onClick={() => { const l = (b.content.logos || []).filter((_, li) => li !== i); upd({ logos: l }); }}
-                    className="p-1 text-red-500 bg-red-50 rounded text-xs">✕</button>
+                  <input placeholder="Name" value={logo.name} onChange={e => { const l = [...(b.content.logos || [])]; l[i] = { ...l[i], name: e.target.value }; upd({ logos: l }); }} className="w-1/3 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  <input placeholder="Logo URL" value={logo.logoUrl} onChange={e => { const l = [...(b.content.logos || [])]; l[i] = { ...l[i], logoUrl: e.target.value }; upd({ logos: l }); }} className="flex-1 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  <button onClick={() => { const l = (b.content.logos || []).filter((_, li) => li !== i); upd({ logos: l }); }} className="p-1 text-red-500 bg-red-50 rounded text-xs">✕</button>
                 </div>
               ))}
               <button onClick={() => upd({ logos: [...(b.content.logos || []), { name: 'Brand', logoUrl: '' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add Logo
               </button>
             </div>
           </div>
         )}
 
-        {/* NAVBAR */}
+        {/* ── NAVBAR ── */}
         {b.type === 'navbar' && (
           <div className="space-y-4">
             <InputField label="Brand Name" value={b.content.brandName || ''} onChange={v => upd({ brandName: v })} />
@@ -347,15 +446,13 @@ export default function RightPropertiesPanel({
               <span className="text-[10px] font-bold text-slate-400 block">Nav Links</span>
               {(b.content.links || []).map((lnk, i) => (
                 <div key={i} className="flex gap-2 items-center">
-                  <input value={lnk.label} placeholder="Label" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], label: e.target.value }; upd({ links: l }); }}
-                    className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <input value={lnk.url} placeholder="#anchor" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], url: e.target.value }; upd({ links: l }); }}
-                    className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  <input value={lnk.label} placeholder="Label" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], label: e.target.value }; upd({ links: l }); }} className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
+                  <input value={lnk.url} placeholder="#anchor" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], url: e.target.value }; upd({ links: l }); }} className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                   <button onClick={() => { const l = (b.content.links || []).filter((_, li) => li !== i); upd({ links: l }); }} className="p-1 bg-red-50 text-red-500 rounded text-xs">✕</button>
                 </div>
               ))}
               <button onClick={() => upd({ links: [...(b.content.links || []), { label: 'New Link', url: '#' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors">
                 <Plus className="w-3 h-3" /> Add Link
               </button>
             </div>
@@ -372,7 +469,7 @@ export default function RightPropertiesPanel({
           </div>
         )}
 
-        {/* HERO */}
+        {/* ── HERO ── */}
         {b.type === 'hero_section' && (
           <div className="space-y-4">
             <InputField label="Eyebrow Tag" value={b.content.subtitle || ''} onChange={v => upd({ subtitle: v })} />
@@ -396,21 +493,35 @@ export default function RightPropertiesPanel({
                 <input placeholder="Label" value={b.content.secondaryBtnText || ''} onChange={e => upd({ secondaryBtnText: e.target.value })} className="text-xs p-2 bg-white border border-slate-200 rounded-lg" />
                 <input placeholder="URL" value={b.content.secondaryBtnUrl || ''} onChange={e => upd({ secondaryBtnUrl: e.target.value })} className="text-xs p-2 bg-white border border-slate-200 rounded-lg" />
               </div>
-              <select value={b.content.secondaryBtnStyle || 'outline'} onChange={e => upd({ secondaryBtnStyle: e.target.value as any })} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg">
-                <option value="filled">Filled</option>
-                <option value="outline">Outline</option>
-                <option value="ghost">Ghost / Arrow</option>
-              </select>
             </div>
+            {/* Enhanced Hero Image Section */}
             <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <span className="text-[10px] font-bold text-slate-400 block">Hero Image</span>
-              <input placeholder="Image URL" value={b.content.imageUrl || ''} onChange={e => upd({ imageUrl: e.target.value })} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg" />
-              <input placeholder="Alt text" value={b.content.imageAlt || ''} onChange={e => upd({ imageAlt: e.target.value })} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg" />
+              {b.content.imageUrl && (
+                <img src={b.content.imageUrl} alt="" className="w-full h-24 object-cover rounded-xl mb-2" />
+              )}
+              <input placeholder="Paste image URL..." value={b.content.imageUrl || ''} onChange={e => upd({ imageUrl: e.target.value })} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg" />
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center justify-center gap-1.5 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                  <Upload className="w-3 h-3" /> Upload
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, url => upd({ imageUrl: url })); }} />
+                </label>
+                <button onClick={() => setShowStockPhotos(v => !v)}
+                  className={`py-2 border rounded-lg text-[10px] font-bold transition-colors ${showStockPhotos ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-600'}`}>
+                  <span className="flex items-center justify-center gap-1"><Camera className="w-3 h-3" /> Stock Photos</span>
+                </button>
+              </div>
+              {showStockPhotos && (
+                <div className="pt-2">
+                  <StockPhotoPicker onSelect={url => { upd({ imageUrl: url }); setShowStockPhotos(false); }} />
+                </div>
+              )}
+              <input placeholder="Alt text (for SEO)" value={b.content.imageAlt || ''} onChange={e => upd({ imageAlt: e.target.value })} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg" />
             </div>
           </div>
         )}
 
-        {/* FEATURES GRID */}
+        {/* ── FEATURES GRID ── */}
         {b.type === 'features_grid' && (
           <div className="space-y-4">
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
@@ -428,14 +539,14 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ features: [...(b.content.features || []), { icon: 'Star', title: 'New Feature', description: 'Describe this feature.' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add Feature
               </button>
             </div>
           </div>
         )}
 
-        {/* TESTIMONIALS */}
+        {/* ── TESTIMONIALS ── */}
         {b.type === 'testimonials' && (
           <div className="space-y-4">
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
@@ -455,15 +566,15 @@ export default function RightPropertiesPanel({
                   <input placeholder="Avatar URL" value={t.avatarUrl} onChange={e => { const ts = [...(b.content.testimonials || [])]; ts[i] = { ...ts[i], avatarUrl: e.target.value }; upd({ testimonials: ts }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                 </div>
               ))}
-              <button onClick={() => upd({ testimonials: [...(b.content.testimonials || []), { quote: 'Great product!', author: 'Customer Name', role: 'Job Title, Company', avatarUrl: '' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+              <button onClick={() => upd({ testimonials: [...(b.content.testimonials || []), { quote: 'Great product!', author: 'Customer Name', role: 'Job Title', avatarUrl: '' }] })}
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add Testimonial
               </button>
             </div>
           </div>
         )}
 
-        {/* PRICING */}
+        {/* ── PRICING ── */}
         {b.type === 'pricing_cards' && (
           <div className="space-y-4">
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
@@ -491,14 +602,14 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ pricingPlans: [...(b.content.pricingPlans || []), { name: 'Plan', price: '$0', period: 'mo', features: ['Feature 1'], btnText: 'Get Started' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add Plan
               </button>
             </div>
           </div>
         )}
 
-        {/* CTA BLOCK */}
+        {/* ── CTA BLOCK ── */}
         {b.type === 'cta_block' && (
           <div className="space-y-4">
             <TextAreaField label="Headline" value={b.content.title || ''} onChange={v => upd({ title: v })} rows={2} />
@@ -514,7 +625,7 @@ export default function RightPropertiesPanel({
           </div>
         )}
 
-        {/* CONTACT FORM */}
+        {/* ── CONTACT FORM ── */}
         {b.type === 'contact_form' && (
           <div className="space-y-4">
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
@@ -541,70 +652,99 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ formFields: [...(b.content.formFields || []), { label: 'New Field', placeholder: 'Enter value...', type: 'text' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
                 <Plus className="w-3 h-3" /> Add Field
               </button>
             </div>
           </div>
         )}
 
-        {/* IMAGE BLOCK */}
+        {/* ── IMAGE BLOCK (enhanced) ── */}
         {b.type === 'image_block' && (
           <div className="space-y-4">
+            {b.content.imageUrl && (
+              <div className="relative">
+                <img src={b.content.imageUrl} alt="" className="w-full h-32 object-cover rounded-xl" />
+                <button onClick={() => upd({ imageUrl: '' })} className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-slate-600 block">Image URL</label>
               <input value={b.content.imageUrl || ''} onChange={e => upd({ imageUrl: e.target.value })} placeholder="https://..." className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
             </div>
-            <div className="border border-dashed border-indigo-200 rounded-xl p-3 text-center relative bg-white hover:border-indigo-400 transition-colors">
-              <input type="file" accept="image/*" onChange={e => {
-                const file = e.target.files?.[0];
-                if (file) { const r = new FileReader(); r.onloadend = () => upd({ imageUrl: r.result as string }); r.readAsDataURL(file); }
-              }} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-              <span className="text-[10px] font-bold text-indigo-600">📂 Upload from device</span>
-              <p className="text-[9px] text-slate-400 mt-0.5">PNG, JPG, WEBP, SVG</p>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="border border-dashed border-indigo-200 rounded-xl p-3 text-center relative bg-white hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors cursor-pointer">
+                <input type="file" accept="image/*" onChange={e => { const file = e.target.files?.[0]; if (file) handleImageUpload(file, url => upd({ imageUrl: url })); }} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
+                <Upload className="w-4 h-4 text-indigo-400 mx-auto mb-1" />
+                <span className="text-[10px] font-bold text-indigo-600">Upload</span>
+              </label>
+              <button onClick={() => setShowStockPhotos(v => !v)}
+                className={`border rounded-xl p-3 text-center transition-colors cursor-pointer ${showStockPhotos ? 'bg-indigo-600 text-white border-indigo-600' : 'border-dashed border-indigo-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/30'}`}>
+                <Camera className={`w-4 h-4 mx-auto mb-1 ${showStockPhotos ? 'text-white' : 'text-indigo-400'}`} />
+                <span className={`text-[10px] font-bold ${showStockPhotos ? 'text-white' : 'text-indigo-600'}`}>Stock Photos</span>
+              </button>
             </div>
+            {showStockPhotos && (
+              <StockPhotoPicker onSelect={url => { upd({ imageUrl: url }); setShowStockPhotos(false); }} />
+            )}
             <InputField label="Alt Text (SEO)" value={b.content.imageAlt || ''} onChange={v => upd({ imageAlt: v })} />
             <TextAreaField label="Caption" value={b.content.description || ''} onChange={v => upd({ description: v })} rows={2} />
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 block">Aspect Ratio</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 block">Filter Effect</label>
               <div className="grid grid-cols-3 gap-1">
-                {(['auto', 'square', 'video', 'portrait', 'wide'] as const).map(r => (
-                  <button key={r} onClick={() => upd({ imageAspectRatio: r })}
-                    className={`py-1 rounded border capitalize text-[9px] font-bold transition-all ${b.content.imageAspectRatio === r ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600'}`}>
-                    {r}
+                {(['none', 'grayscale', 'sepia', 'vintage', 'warm', 'cool'] as const).map(f => (
+                  <button key={f} onClick={() => upd({ imageFilter: f })}
+                    className={`py-1 rounded border capitalize text-[9px] font-bold transition-all ${b.content.imageFilter === f ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}>
+                    {f}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 block">Filter</label>
-              <select value={b.content.imageFilter || 'none'} onChange={e => upd({ imageFilter: e.target.value as any })} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg">
-                <option value="none">None</option>
-                <option value="grayscale">Grayscale</option>
-                <option value="sepia">Sepia</option>
-                <option value="vintage">Vintage</option>
-                <option value="warm">Warm</option>
-                <option value="cool">Cool</option>
-                <option value="blur">Blur</option>
-              </select>
-            </div>
           </div>
         )}
 
-        {/* VIDEO EMBED */}
+        {/* ── VIDEO EMBED (enhanced with auto-convert) ── */}
         {b.type === 'video_embed' && (
           <div className="space-y-4">
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
             <TextAreaField label="Description" value={b.content.description || ''} onChange={v => upd({ description: v })} rows={2} />
+            <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <span className="text-[10px] font-bold text-indigo-700 block">🎬 Paste any video link</span>
+              <p className="text-[9px] text-slate-400 leading-relaxed">Works with YouTube, Vimeo, and Loom. We'll convert it automatically!</p>
+              <div className="flex gap-2">
+                <input
+                  value={videoUrl}
+                  onChange={e => setVideoUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="flex-1 text-xs p-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                />
+                <button
+                  onClick={() => {
+                    const embed = convertToEmbedUrl(videoUrl);
+                    upd({ videoUrl: embed });
+                    setVideoUrl('');
+                  }}
+                  className="px-3 py-2 bg-indigo-600 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
+                >
+                  Add
+                </button>
+              </div>
+              {b.content.videoUrl && (
+                <div className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Video set: {b.content.videoUrl.substring(0, 40)}...
+                </div>
+              )}
+            </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-600 block">Video Embed URL</label>
+              <label className="text-[11px] font-bold text-slate-600 block">Or paste embed URL directly</label>
               <input value={b.content.videoUrl || ''} onChange={e => upd({ videoUrl: e.target.value })} placeholder="https://youtube.com/embed/..." className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
-              <p className="text-[9px] text-slate-400">Use the embed URL format (e.g. youtube.com/embed/VIDEO_ID)</p>
             </div>
           </div>
         )}
 
-        {/* FOOTER */}
+        {/* ── FOOTER ── */}
         {b.type === 'footer' && (
           <div className="space-y-4">
             <InputField label="Brand Name" value={b.content.brandName || ''} onChange={v => upd({ brandName: v })} />
@@ -619,21 +759,21 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ links: [...(b.content.links || []), { label: 'Link', url: '#' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg flex items-center justify-center gap-1">
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors">
                 <Plus className="w-3 h-3" /> Add Link
               </button>
             </div>
           </div>
         )}
 
-        {/* DIVIDER */}
+        {/* ── DIVIDER ── */}
         {b.type === 'divider' && (
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-600 block">Style</label>
             <div className="grid grid-cols-3 gap-2">
               {(['solid', 'dashed', 'dotted'] as const).map(s => (
                 <button key={s} onClick={() => upd({ dividerStyle: s })}
-                  className={`py-2 rounded-xl border capitalize font-semibold text-xs transition-all ${b.content.dividerStyle === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>
+                  className={`py-2 rounded-xl border capitalize font-semibold text-xs transition-all ${b.content.dividerStyle === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
                   {s}
                 </button>
               ))}
@@ -641,7 +781,7 @@ export default function RightPropertiesPanel({
           </div>
         )}
 
-        {/* SPACER */}
+        {/* ── SPACER ── */}
         {b.type === 'spacer' && (
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-bold text-slate-600">
@@ -664,10 +804,10 @@ export default function RightPropertiesPanel({
           <SectionHeader title="Spacing & Padding" sKey="spacing" />
           {expandedSections.spacing && (
             <div className="space-y-3">
-              {[['paddingTop', 'Top'], ['paddingBottom', 'Bottom']].map(([key, label]) => (
+              {[['paddingTop', 'Top Padding'], ['paddingBottom', 'Bottom Padding']].map(([key, label]) => (
                 <div key={key} className="space-y-1">
                   <div className="flex justify-between text-[11px] text-slate-500 font-semibold">
-                    <span>{label} Padding</span>
+                    <span>{label}</span>
                     <span className="font-mono text-indigo-600 font-bold">{(b.styles as any)[key]}px</span>
                   </div>
                   <input type="range" min={0} max={200} step={8} value={(b.styles as any)[key]}
@@ -707,7 +847,6 @@ export default function RightPropertiesPanel({
           <SectionHeader title="Colors" sKey="colors" />
           {expandedSections.colors && (
             <div className="space-y-4">
-              {/* Background */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-bold text-slate-400">Background</span>
@@ -718,7 +857,6 @@ export default function RightPropertiesPanel({
                   {BG_SWATCHES.slice(0, 12).map(c => <ColorSwatch key={c} color={c} selected={b.styles.bgColor === c} onClick={() => updS({ bgColor: c })} />)}
                 </div>
               </div>
-              {/* Brand */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-bold text-slate-400">Brand / Accent</span>
@@ -729,10 +867,9 @@ export default function RightPropertiesPanel({
                   {BRAND_SWATCHES.map(c => <ColorSwatch key={c} color={c} selected={b.styles.brandColor === c} onClick={() => updS({ brandColor: c })} />)}
                 </div>
               </div>
-              {/* Text color */}
               <div className="flex items-center gap-2">
                 <input type="color" value={b.styles.textColor} onChange={e => updS({ textColor: e.target.value })} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer" />
-                <div className="flex-1 space-y-0.5">
+                <div className="flex-1">
                   <label className="text-[10px] font-bold text-slate-400 block">Text Color</label>
                   <input type="text" value={b.styles.textColor} onChange={e => updS({ textColor: e.target.value })}
                     className="w-full text-xs px-2 py-1 border border-slate-200 bg-white rounded font-mono" />
@@ -754,31 +891,23 @@ export default function RightPropertiesPanel({
           {b.styles.useGradient && (
             <div className="space-y-2 pt-1">
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400">From</label>
-                  <div className="flex gap-1">
-                    <input type="color" value={b.styles.gradientFrom || '#4f46e5'} onChange={e => updS({ gradientFrom: e.target.value })} className="w-8 h-7 rounded border border-slate-200 cursor-pointer" />
-                    <input type="text" value={b.styles.gradientFrom || '#4f46e5'} onChange={e => updS({ gradientFrom: e.target.value })} className="flex-1 text-[10px] p-1 border border-slate-200 bg-white rounded font-mono" />
+                {[['From', 'gradientFrom', '#4f46e5'], ['To', 'gradientTo', '#7c3aed']].map(([label, key, def]) => (
+                  <div key={key} className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400">{label}</label>
+                    <div className="flex gap-1">
+                      <input type="color" value={(b.styles as any)[key] || def} onChange={e => updS({ [key]: e.target.value })} className="w-8 h-7 rounded border border-slate-200 cursor-pointer" />
+                      <input type="text" value={(b.styles as any)[key] || def} onChange={e => updS({ [key]: e.target.value })} className="flex-1 text-[10px] p-1 border border-slate-200 bg-white rounded font-mono" />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400">To</label>
-                  <div className="flex gap-1">
-                    <input type="color" value={b.styles.gradientTo || '#7c3aed'} onChange={e => updS({ gradientTo: e.target.value })} className="w-8 h-7 rounded border border-slate-200 cursor-pointer" />
-                    <input type="text" value={b.styles.gradientTo || '#7c3aed'} onChange={e => updS({ gradientTo: e.target.value })} className="flex-1 text-[10px] p-1 border border-slate-200 bg-white rounded font-mono" />
-                  </div>
-                </div>
+                ))}
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-400">Direction</label>
-                <div className="grid grid-cols-4 gap-1">
-                  {([['to-r', '→'], ['to-b', '↓'], ['to-br', '↘'], ['to-tr', '↗']] as const).map(([val, icon]) => (
-                    <button key={val} onClick={() => updS({ gradientDirection: val as any })}
-                      className={`py-1.5 text-sm rounded border transition-all ${b.styles.gradientDirection === val ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600'}`}>
-                      {icon}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-4 gap-1">
+                {([['to-r', '→'], ['to-b', '↓'], ['to-br', '↘'], ['to-tr', '↗']] as const).map(([val, icon]) => (
+                  <button key={val} onClick={() => updS({ gradientDirection: val as any })}
+                    className={`py-1.5 text-sm rounded border transition-all ${b.styles.gradientDirection === val ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}>
+                    {icon}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -787,52 +916,31 @@ export default function RightPropertiesPanel({
         {/* Typography */}
         <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
           <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Typography</span>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 block">Block Font Family</label>
-            <select value={b.styles.fontFamily || project.style.fontFamily}
-              onChange={e => updS({ fontFamily: e.target.value })}
-              className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg">
-              <option value="">Use Global Default</option>
-              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-            </select>
-          </div>
+          <select value={b.styles.fontFamily || project.style.fontFamily} onChange={e => updS({ fontFamily: e.target.value })}
+            className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg">
+            <option value="">Use Global Default</option>
+            {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
         </div>
 
         {/* Border */}
         <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Border</span>
+          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Border & Radius</span>
           <div className="space-y-2">
             <div className="flex justify-between text-[10px] font-bold text-slate-400">
-              <span>Width</span>
+              <span>Border Width</span>
               <span className="font-mono text-indigo-600">{b.styles.borderWidth || 0}px</span>
             </div>
             <input type="range" min={0} max={8} step={1} value={b.styles.borderWidth || 0}
               onChange={e => updS({ borderWidth: +e.target.value })} className="w-full accent-indigo-600" />
-            {(b.styles.borderWidth || 0) > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                <select value={b.styles.borderStyle || 'solid'} onChange={e => updS({ borderStyle: e.target.value as any })} className="text-[11px] p-2 bg-white border border-slate-200 rounded-lg">
-                  <option value="solid">Solid</option>
-                  <option value="dashed">Dashed</option>
-                  <option value="dotted">Dotted</option>
-                </select>
-                <div className="flex items-center gap-1">
-                  <input type="color" value={b.styles.borderColor || '#e2e8f0'} onChange={e => updS({ borderColor: e.target.value })} className="w-8 h-8 rounded border border-slate-200 cursor-pointer" />
-                  <input type="text" value={b.styles.borderColor || '#e2e8f0'} onChange={e => updS({ borderColor: e.target.value })} className="flex-1 text-[10px] p-1.5 border border-slate-200 bg-white rounded font-mono" />
-                </div>
-              </div>
-            )}
           </div>
-          {/* Corner Radius */}
-          <div className="pt-2 space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-400 block">Corner Radius</label>
-            <div className="grid grid-cols-4 gap-1">
-              {(['none', 'md', 'xl', '3xl'] as const).map(r => (
-                <button key={r} onClick={() => updS({ borderRadius: r })}
-                  className={`py-1.5 rounded-lg border text-[10px] font-bold transition-all capitalize ${b.styles.borderRadius === r ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>
-                  {r}
-                </button>
-              ))}
-            </div>
+          <div className="grid grid-cols-4 gap-1 pt-1">
+            {(['none', 'md', 'xl', '3xl'] as const).map(r => (
+              <button key={r} onClick={() => updS({ borderRadius: r })}
+                className={`py-1.5 rounded-lg border text-[10px] font-bold transition-all capitalize ${b.styles.borderRadius === r ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                {r}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -849,7 +957,6 @@ export default function RightPropertiesPanel({
       </div>
     );
 
-    // Advanced tab
     return (
       <div className="space-y-4">
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Advanced Options</p>
@@ -858,7 +965,7 @@ export default function RightPropertiesPanel({
           <div className="grid grid-cols-3 gap-1">
             {(['none', 'soft', 'heavy'] as const).map(s => (
               <button key={s} onClick={() => updS({ shadow: s })}
-                className={`py-1.5 rounded-lg border text-[10px] font-bold capitalize transition-all ${b.styles.shadow === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>
+                className={`py-1.5 rounded-lg border text-[10px] font-bold capitalize transition-all ${b.styles.shadow === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
                 {s}
               </button>
             ))}
@@ -901,7 +1008,7 @@ export default function RightPropertiesPanel({
         <div className="p-4 border-b border-slate-100 shrink-0 bg-slate-50/20">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-black text-slate-900 text-xs uppercase tracking-wider">Builder Panel</h3>
-            <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 text-slate-500 font-mono rounded">v3.0</span>
+            <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 text-slate-500 font-mono rounded">v4.0</span>
           </div>
           <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 gap-0.5">
             {[{ key: 'blocks', icon: PlusCircle, label: 'Blocks' }, { key: 'settings', icon: Palette, label: 'Theme' }, { key: 'layers', icon: Layers, label: 'Layers' }].map(({ key, icon: Icon, label }) => (
@@ -923,25 +1030,52 @@ export default function RightPropertiesPanel({
             {/* BLOCKS TAB */}
             {activeTab === 'blocks' && (
               <div className="space-y-3">
+                {/* Quick Templates */}
+                <div className="p-3 bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100 rounded-2xl space-y-2">
+                  <button onClick={() => setShowTemplates(v => !v)}
+                    className="w-full flex items-center justify-between text-xs font-black text-indigo-800">
+                    <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Quick Page Templates</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showTemplates ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showTemplates && (
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                      {PAGE_TEMPLATES.map(tpl => (
+                        <button key={tpl.type}
+                          onClick={() => {
+                            tpl.blocks.forEach(type => onAddBlock(type));
+                            setShowTemplates(false);
+                          }}
+                          className="p-2 bg-white rounded-xl border border-indigo-100 text-left hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group">
+                          <span className="text-[10px] font-black text-slate-700 group-hover:text-indigo-700 block">{tpl.label}</span>
+                          <span className="text-[9px] text-slate-400 leading-snug">{tpl.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Category filter */}
                 <div className="flex flex-wrap gap-1 pb-1">
                   {tabs.map(t => (
                     <button key={t} onClick={() => setActiveCategory(t)}
-                      className={`px-2 py-1 text-[9px] font-bold rounded-lg border whitespace-nowrap transition-all ${activeCategory === t ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600'}`}>
+                      className={`px-2 py-1 text-[9px] font-bold rounded-lg border whitespace-nowrap transition-all ${activeCategory === t ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300'}`}>
                       {t}
                     </button>
                   ))}
                 </div>
+
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input type="text" placeholder="Search blocks..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                     className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
-                <div className="space-y-1.5 max-h-[55vh] overflow-y-auto pr-0.5">
+
+                <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-0.5">
                   {filtered.map(opt => {
                     const Icon = opt.icon;
                     return (
                       <div key={opt.type} onClick={() => onAddBlock(opt.type)}
-                        className="group p-2.5 border border-slate-100 hover:border-indigo-400 bg-white hover:bg-indigo-50/30 rounded-xl transition-all flex items-start gap-2.5 cursor-pointer relative overflow-hidden">
+                        className="group p-2.5 border border-slate-100 hover:border-indigo-400 bg-white hover:bg-indigo-50/30 rounded-xl transition-all flex items-start gap-2.5 cursor-pointer relative overflow-hidden hover:shadow-sm">
                         <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-600 scale-y-0 group-hover:scale-y-100 transition-transform origin-top" />
                         <div className="w-8 h-8 bg-slate-50 group-hover:bg-indigo-100 rounded-lg flex items-center justify-center text-slate-500 group-hover:text-indigo-600 transition-colors shrink-0">
                           <Icon className="w-4 h-4" />
@@ -966,16 +1100,15 @@ export default function RightPropertiesPanel({
               <div className="space-y-4">
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Design Tokens</p>
 
-                {/* Theme presets */}
                 <div className="p-3 bg-indigo-50/40 border border-indigo-100/60 rounded-2xl space-y-3">
                   <div className="flex items-center gap-1.5 text-xs font-black text-indigo-900">
                     <Sparkles className="w-4 h-4 text-indigo-500" /> Visual Themes
                   </div>
                   {([
-                    { id: 'minimal_modern', label: 'Minimal Modern', desc: 'Clean, spacious, neutral' },
-                    { id: 'glassmorphism', label: 'Frosted Glass', desc: 'Translucent, blurred surfaces' },
-                    { id: 'neo_brutalist', label: 'Neo-Brutalist', desc: 'Bold borders, heavy shadows' },
-                    { id: 'cosmic_dark', label: 'Cosmic Dark', desc: 'Deep dark, starry palette' }
+                    { id: 'minimal_modern', label: 'Minimal Modern', desc: 'Clean, spacious, neutral', emoji: '✨' },
+                    { id: 'glassmorphism', label: 'Frosted Glass', desc: 'Translucent, blurred surfaces', emoji: '🔮' },
+                    { id: 'neo_brutalist', label: 'Neo-Brutalist', desc: 'Bold borders, heavy shadows', emoji: '⬛' },
+                    { id: 'cosmic_dark', label: 'Cosmic Dark', desc: 'Deep dark, starry palette', emoji: '🌌' }
                   ] as const).map(thm => (
                     <button key={thm.id} onClick={() => {
                       const s = { ...project.style, theme: thm.id };
@@ -986,7 +1119,7 @@ export default function RightPropertiesPanel({
                     }}
                       className={`w-full text-left p-2.5 rounded-xl border text-xs transition-all ${project.style.theme === thm.id ? 'border-indigo-600 bg-white font-bold shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200 text-slate-500'}`}>
                       <div className="flex justify-between items-center">
-                        <span className="font-bold">{thm.label}</span>
+                        <span className="font-bold">{thm.emoji} {thm.label}</span>
                         {project.style.theme === thm.id && <Check className="w-3.5 h-3.5 text-indigo-600" />}
                       </div>
                       <p className="text-[9px] font-normal text-slate-400 mt-0.5">{thm.desc}</p>
@@ -994,17 +1127,14 @@ export default function RightPropertiesPanel({
                   ))}
                 </div>
 
-                {/* Global font */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Global Font Family</span>
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Global Font</span>
                   <select value={project.style.fontFamily} onChange={e => onChangeStyle({ ...project.style, fontFamily: e.target.value })}
                     className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg">
                     {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                   </select>
-                  <p className="text-[9px] text-slate-400 leading-relaxed">Applied to all blocks unless overridden per block.</p>
                 </div>
 
-                {/* Canvas bg */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                   <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Canvas Background</span>
                   <div className="flex items-center gap-2">
@@ -1012,9 +1142,9 @@ export default function RightPropertiesPanel({
                     <input type="text" value={project.style.background} onChange={e => onChangeStyle({ ...project.style, background: e.target.value })} className="flex-1 text-xs px-2.5 py-1.5 border border-slate-200 bg-white rounded-lg font-mono font-bold text-slate-800" />
                   </div>
                   <div className="grid grid-cols-6 gap-1">
-                    {BG_SWATCHES.slice(0, 12).map(c => (
+                    {BG_SWATCHES.map(c => (
                       <div key={c} onClick={() => onChangeStyle({ ...project.style, background: c })}
-                        className={`h-5 rounded border cursor-pointer transition-transform hover:scale-110 flex items-center justify-center ${project.style.background === c ? 'border-indigo-600' : 'border-slate-200'}`}
+                        className={`h-5 rounded border cursor-pointer transition-all hover:scale-110 flex items-center justify-center ${project.style.background === c ? 'border-indigo-600 ring-1 ring-indigo-400' : 'border-slate-200'}`}
                         style={{ backgroundColor: c }}>
                         {project.style.background === c && <Check className={`w-3 h-3 ${['#0f172a', '#020617', '#1e293b'].includes(c) ? 'text-white' : 'text-slate-800'}`} />}
                       </div>
@@ -1022,27 +1152,13 @@ export default function RightPropertiesPanel({
                   </div>
                 </div>
 
-                {/* Global radius */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Default Corner Radius</span>
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Corner Radius</span>
                   <div className="grid grid-cols-4 gap-1">
                     {(['none', '6px', '12px', '24px'] as const).map(r => (
                       <button key={r} onClick={() => onChangeStyle({ ...project.style, radius: r })}
-                        className={`py-1.5 rounded-lg border text-[10px] font-bold transition-all ${project.style.radius === r ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>
+                        className={`py-1.5 rounded-lg border text-[10px] font-bold transition-all ${project.style.radius === r ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
                         {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Global shadows */}
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Default Shadows</span>
-                  <div className="grid grid-cols-3 gap-1">
-                    {(['none', 'soft_elevation', 'heavy'] as const).map(s => (
-                      <button key={s} onClick={() => onChangeStyle({ ...project.style, shadows: s })}
-                        className={`py-1.5 rounded-lg border text-[10px] font-bold capitalize transition-all ${project.style.shadows === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}>
-                        {s.replace('_', ' ')}
                       </button>
                     ))}
                   </div>
@@ -1066,7 +1182,7 @@ export default function RightPropertiesPanel({
                   <div className="space-y-1.5">
                     {project.blocks.map((blk, idx) => (
                       <div key={blk.id} onClick={() => setSelection({ blockId: blk.id, elementId: null })}
-                        className="p-2.5 border border-slate-200 bg-white hover:border-indigo-400 rounded-xl flex items-center justify-between cursor-pointer transition-all group shadow-sm hover:shadow">
+                        className="p-2.5 border border-slate-200 bg-white hover:border-indigo-400 rounded-xl flex items-center justify-between cursor-pointer transition-all group shadow-sm hover:shadow hover:-translate-y-px">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <span className="text-[9px] font-mono text-slate-400 w-4 shrink-0">{idx + 1}</span>
                           <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: blk.styles.bgColor }} />
@@ -1090,12 +1206,11 @@ export default function RightPropertiesPanel({
   );
 }
 
-// Small helper components
 const InputField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
   <div className="space-y-1">
     <label className="text-[11px] font-bold text-slate-600 block">{label}</label>
     <input type="text" value={value} onChange={e => onChange(e.target.value)}
-      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium" />
+      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium transition-shadow hover:border-slate-300" />
   </div>
 );
 
@@ -1103,6 +1218,6 @@ const TextAreaField = ({ label, value, onChange, rows = 3 }: { label: string; va
   <div className="space-y-1">
     <label className="text-[11px] font-bold text-slate-600 block">{label}</label>
     <textarea rows={rows} value={value} onChange={e => onChange(e.target.value)}
-      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium leading-relaxed resize-none" />
+      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium leading-relaxed resize-none transition-shadow hover:border-slate-300" />
   </div>
 );
