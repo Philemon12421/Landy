@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewportMode, ProjectState } from '../types';
 import { 
   Monitor, Laptop, Tablet, Smartphone, Undo2, Redo2, Eye, EyeOff, 
-  Download, Share2, Sparkles, AlertCircle, Check, Code, FileCode
+  Download, Share2, Sparkles, AlertCircle, Check, Code, FileCode, X
 } from 'lucide-react';
 
 interface TopBarProps {
@@ -37,8 +37,47 @@ export default function TopBar({
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [exportModalContent, setExportModalContent] = useState<{ title: string; code: string; type: 'html' | 'react' } | null>(null);
   const [copied, setCopied] = useState(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Compile Static HTML with Tailwind support
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target as Node)) {
+        setShowExportDropdown(false);
+      }
+    };
+    if (showExportDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportDropdown]);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (exportModalContent) {
+          setExportModalContent(null);
+        } else if (showExportDropdown) {
+          setShowExportDropdown(false);
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [exportModalContent, showExportDropdown]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (exportModalContent) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [exportModalContent]);
+
   const generateStaticHTML = (proj: ProjectState): string => {
     const blocksHTML = proj.blocks.map(block => {
       const radiusClass = getRadiusTailwind(block.styles.borderRadius);
@@ -101,13 +140,10 @@ export default function TopBar({
           <h2 class="text-3xl font-extrabold tracking-tight">${block.content.title || 'Essential Features'}</h2>
           ${block.content.description ? `<p class="mt-3 text-sm opacity-85 leading-relaxed">${block.content.description}</p>` : ''}
         </div>
-        
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           ${(block.content.features || []).map(feat => `
           <div class="p-6 border rounded-xl hover:shadow-md transition-all space-y-3" style="border-color: ${block.styles.textColor}15;">
-            <div class="w-10 h-10 flex items-center justify-center rounded-lg" style="background-color: ${block.styles.brandColor}15; color: ${block.styles.brandColor}; font-weight: bold; font-family: monospace;">
-              ✦
-            </div>
+            <div class="w-10 h-10 flex items-center justify-center rounded-lg" style="background-color: ${block.styles.brandColor}15; color: ${block.styles.brandColor}; font-weight: bold; font-family: monospace;">✦</div>
             <h3 class="font-bold text-base">${feat.title}</h3>
             <p class="text-xs opacity-90 leading-relaxed">${feat.description}</p>
           </div>`).join('\n          ')}
@@ -152,13 +188,13 @@ export default function TopBar({
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
           ${(block.content.pricingPlans || []).map(plan => `
-          <div class="border p-8 rounded-2xl flex flex-col justify-between relative ${plan.popular ? 'ring-2 ring-offset-4' : ''}" style="border-color: ${block.styles.textColor}15; ${plan.popular ? `ring-color: ${block.styles.brandColor}` : ''}">
+          <div class="border p-8 rounded-2xl flex flex-col justify-between relative ${plan.popular ? 'ring-2 ring-offset-4' : ''}" style="border-color: ${block.styles.textColor}15;">
             ${plan.popular ? `<span class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white rounded-full text-[10px] font-bold uppercase tracking-widest">MOST POPULAR</span>` : ''}
             <div class="space-y-4">
-              <h3 class="font-bold text-lg text-slate-800">${plan.name}</h3>
+              <h3 class="font-bold text-lg">${plan.name}</h3>
               <div class="flex items-baseline gap-1">
                 <span class="text-3xl font-extrabold">${plan.price}</span>
-                <span class="text-xs opacity-75">${plan.period}</span>
+                <span class="text-xs opacity-75">/${plan.period}</span>
               </div>
               <ul class="space-y-2.5 text-xs">
                 ${plan.features.map(f => `<li class="flex items-center gap-2">✓ <span>${f}</span></li>`).join('\n                ')}
@@ -181,17 +217,13 @@ export default function TopBar({
           <h2 class="text-3xl font-extrabold tracking-tight">${block.content.title || 'Get in touch'}</h2>
           <p class="text-xs opacity-80 mt-2">${block.content.description || ''}</p>
         </div>
-        <form class="text-left space-y-4" onsubmit="event.preventDefault(); alert('Lead inquiry submitted successfully!');">
+        <form class="text-left space-y-4" onsubmit="event.preventDefault(); alert('Form submitted!');">
           ${(block.content.formFields || []).map(f => `
           <div class="space-y-1">
             <label class="text-xs font-bold block opacity-85">${f.label}</label>
-            ${f.type === 'textarea' ? `
-            <textarea placeholder="${f.placeholder}" class="w-full p-2.5 text-xs border rounded-lg bg-white/70 focus:outline-none focus:border-blue-500" rows="3"></textarea>
-            ` : `
-            <input type="${f.type}" placeholder="${f.placeholder}" class="w-full p-2.5 text-xs border rounded-lg bg-white/70 focus:outline-none focus:border-blue-500" />
-            `}
+            ${f.type === 'textarea' ? `<textarea placeholder="${f.placeholder}" class="w-full p-2.5 text-xs border rounded-lg" rows="3"></textarea>` : `<input type="${f.type}" placeholder="${f.placeholder}" class="w-full p-2.5 text-xs border rounded-lg" />`}
           </div>`).join('\n          ')}
-          <button type="submit" class="w-full py-3 ${radiusClass} text-xs font-semibold text-white shadow-md hover:-translate-y-0.5 transition-all" style="background-color: ${block.styles.brandColor};">
+          <button type="submit" class="w-full py-3 ${radiusClass} text-xs font-semibold text-white" style="background-color: ${block.styles.brandColor};">
             ${block.content.formBtnText || 'Submit Form'}
           </button>
         </form>
@@ -218,7 +250,7 @@ export default function TopBar({
         return `
     <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 text-center">
       <div class="max-w-4xl mx-auto space-y-4">
-        <img src="${block.content.imageUrl}" alt="${block.content.imageAlt || 'Gallery Frame'}" class="w-full h-auto object-cover rounded-xl ${shadowClass}" />
+        <img src="${block.content.imageUrl}" alt="${block.content.imageAlt || ''}" class="w-full h-auto object-cover rounded-xl ${shadowClass}" />
         <p class="text-xs opacity-75">${block.content.description || ''}</p>
       </div>
     </section>`;
@@ -228,33 +260,88 @@ export default function TopBar({
         return `
     <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 text-center">
       <div class="max-w-4xl mx-auto space-y-4">
-        <h3 class="font-bold text-lg">${block.content.title || 'Video Breakdown'}</h3>
-        <p class="text-xs opacity-80">${block.content.description || ''}</p>
-        <div class="aspect-video w-full rounded-2xl overflow-hidden shadow-lg border border-slate-200/40">
+        <h3 class="font-bold text-lg">${block.content.title || ''}</h3>
+        <div class="aspect-video w-full rounded-2xl overflow-hidden shadow-lg">
           <iframe src="${block.content.videoUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
         </div>
       </div>
     </section>`;
       }
 
+      if (block.type === 'stats_block') {
+        return `
+    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
+      <div class="max-w-7xl mx-auto">
+        ${block.content.title ? `<h2 class="text-3xl font-black tracking-tight text-center mb-10">${block.content.title}</h2>` : ''}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          ${(block.content.stats || []).map(s => `
+          <div>
+            <div class="text-4xl font-black" style="color: ${block.styles.brandColor};">${s.prefix || ''}${s.value}${s.suffix || ''}</div>
+            <div class="text-xs font-semibold uppercase tracking-wider opacity-70 mt-1">${s.label}</div>
+          </div>`).join('\n          ')}
+        </div>
+      </div>
+    </section>`;
+      }
+
+      if (block.type === 'faq_block') {
+        return `
+    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
+      <div class="max-w-2xl mx-auto space-y-4">
+        ${block.content.title ? `<h2 class="text-3xl font-black tracking-tight text-center mb-8">${block.content.title}</h2>` : ''}
+        ${(block.content.faqs || []).map((faq, i) => `
+        <details class="p-4 border rounded-xl cursor-pointer" style="border-color: ${block.styles.textColor}20;">
+          <summary class="font-bold text-sm list-none flex justify-between items-center">
+            ${faq.question} <span>▾</span>
+          </summary>
+          <p class="text-xs leading-relaxed opacity-75 mt-3">${faq.answer}</p>
+        </details>`).join('\n        ')}
+      </div>
+    </section>`;
+      }
+
+      if (block.type === 'team_block') {
+        return `
+    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
+      <div class="max-w-7xl mx-auto">
+        ${block.content.title ? `<h2 class="text-3xl font-black tracking-tight text-center mb-10">${block.content.title}</h2>` : ''}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          ${(block.content.team || []).map(m => `
+          <div class="text-center p-6 border rounded-2xl" style="border-color: ${block.styles.textColor}10;">
+            ${m.avatarUrl ? `<img src="${m.avatarUrl}" alt="${m.name}" class="w-16 h-16 rounded-full object-cover mx-auto mb-3" />` : ''}
+            <h3 class="font-black text-sm">${m.name}</h3>
+            <p class="text-xs font-bold mt-1" style="color: ${block.styles.brandColor};">${m.role}</p>
+            <p class="text-xs opacity-70 leading-relaxed mt-2">${m.bio}</p>
+          </div>`).join('\n          ')}
+        </div>
+      </div>
+    </section>`;
+      }
+
+      if (block.type === 'logo_bar') {
+        return `
+    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 text-center">
+      ${block.content.logoBarTitle ? `<p class="text-xs font-semibold uppercase tracking-widest opacity-50 mb-6">${block.content.logoBarTitle}</p>` : ''}
+      <div class="flex flex-wrap items-center justify-center gap-10 opacity-60 grayscale">
+        ${(block.content.logos || []).map(l => `<img src="${l.logoUrl}" alt="${l.name}" class="h-7 w-auto object-contain" />`).join('\n        ')}
+      </div>
+    </section>`;
+      }
+
       if (block.type === 'divider') {
         const borderStyle = block.content.dividerStyle === 'dashed' ? 'border-dashed' : block.content.dividerStyle === 'dotted' ? 'border-dotted' : 'border-solid';
-        return `
-    <div ${blockStyleAttr} class="w-full md:px-12 px-6">
-      <hr class="w-full border-t ${borderStyle}" style="border-color: ${block.styles.textColor}25;" />
-    </div>`;
+        return `<div class="w-full md:px-12 px-6"><hr class="border-t ${borderStyle}" style="border-color: ${block.styles.textColor}25;" /></div>`;
       }
 
       if (block.type === 'spacer') {
-        return `
-    <div ${blockStyleAttr} class="w-full" style="height: ${block.content.spacerHeight || 48}px;"></div>`;
+        return `<div style="height: ${block.content.spacerHeight || 48}px;"></div>`;
       }
 
       if (block.type === 'footer') {
         return `
-    <footer ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 border-t border-slate-200/20">
+    <footer ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 border-t" style="border-color: ${block.styles.textColor}20;">
       <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs font-medium">
-        <span>${block.content.brandName || 'Landy'}</span>
+        <span class="font-black text-base" style="color: ${block.styles.brandColor};">${block.content.brandName || 'Landy'}</span>
         <span>${block.content.copyright || ''}</span>
         <div class="flex items-center gap-6">
           ${(block.content.links || []).map(l => `<a href="${l.url}" class="hover:underline opacity-80">${l.label}</a>`).join('\n          ')}
@@ -263,7 +350,7 @@ export default function TopBar({
     </footer>`;
       }
 
-      return `<!-- Unknown component block: ${block.type} -->`;
+      return `<!-- Unknown block: ${block.type} -->`;
     }).join('\n');
 
     return `<!DOCTYPE html>
@@ -272,37 +359,25 @@ export default function TopBar({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${proj.name}</title>
-  <!-- Load Tailwind Play CDN for immediate preview and styling support -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      margin: 0;
-      padding: 0;
-      scroll-behavior: smooth;
-    }
+    body { font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 0; scroll-behavior: smooth; }
+    details summary::-webkit-details-marker { display: none; }
   </style>
 </head>
 <body style="background-color: ${proj.style.background};">
-  
   <div class="w-full font-sans">
     ${blocksHTML}
   </div>
-
 </body>
 </html>`;
   };
 
-  // Compile full exportable React code
   const generateReactCode = (proj: ProjectState): string => {
     return `import React from 'react';
-/* 
-  Landy Landing Page Component File - ${proj.name}
-  Designed visually utilizing minimalist grids. 
-  Dependencies required: lucide-react, tails-classes
-*/
-import { Sparkles, Layers, Smartphone, Code2, History, CloudUpload } from 'lucide-react';
+// Landy Export — ${proj.name}
+// Requires: Tailwind CSS
 
 export default function RenderedLanding() {
   return (
@@ -310,23 +385,20 @@ export default function RenderedLanding() {
       ${proj.blocks.map(b => {
         if (b.type === 'navbar') {
           return `
-      {/* Navbar segment */}
-      <nav className="w-full relative z-40 relative px-6 md:px-12 py-4 shadow-sm" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
+      {/* Navbar */}
+      <nav className="w-full relative z-40 px-6 md:px-12 py-4 shadow-sm" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="font-extrabold text-xl font-sans" style={{ color: '${b.styles.brandColor}' }}>${b.content.brandName || 'Landy'}</span>
+          <span className="font-extrabold text-xl" style={{ color: '${b.styles.brandColor}' }}>${b.content.brandName || 'Landy'}</span>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium">
             ${(b.content.links || []).map(l => `<a href="${l.url}" className="hover:opacity-80">${l.label}</a>`).join('\n            ')}
           </div>
-          ${b.content.primaryBtnText ? `
-          <a href="${b.content.primaryBtnUrl || '#'}" className="px-5 py-2 text-xs font-semibold rounded-lg text-white" style={{ backgroundColor: '${b.styles.brandColor}' }}>
-            ${b.content.primaryBtnText}
-          </a>` : ''}
+          ${b.content.primaryBtnText ? `<a href="${b.content.primaryBtnUrl || '#'}" className="px-5 py-2 text-xs font-semibold rounded-lg text-white" style={{ backgroundColor: '${b.styles.brandColor}' }}>${b.content.primaryBtnText}</a>` : ''}
         </div>
       </nav>`;
         }
         if (b.type === 'hero_section') {
           return `
-      {/* Hero segment */}
+      {/* Hero */}
       <section className="relative w-full px-6 md:px-12 py-20" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
@@ -335,26 +407,25 @@ export default function RenderedLanding() {
             <p className="text-base opacity-90 leading-relaxed">${b.content.description}</p>
             <div className="flex flex-wrap gap-4 pt-2">
               ${b.content.primaryBtnText ? `<a href="${b.content.primaryBtnUrl || '#'}" className="px-6 py-3 font-semibold text-xs rounded-xl text-white" style={{ backgroundColor: '${b.styles.brandColor}' }}>${b.content.primaryBtnText}</a>` : ''}
-              ${b.content.secondaryBtnText ? `<a href="${b.content.secondaryBtnUrl || '#'}" className="px-6 py-3 font-semibold text-xs rounded-xl border" style={{ borderColor: '${b.styles.textColor}33' }}>${b.content.secondaryBtnText}</a>` : ''}
+              ${b.content.secondaryBtnText ? `<a href="${b.content.secondaryBtnUrl || '#'}" className="px-6 py-3 font-semibold text-xs rounded-xl border">${b.content.secondaryBtnText}</a>` : ''}
             </div>
           </div>
-          ${b.content.imageUrl ? `<img src="${b.content.imageUrl}" alt="Hero graphics" className="w-full h-auto rounded-2xl shadow-lg border shrink-0 border-slate-100" />` : ''}
+          ${b.content.imageUrl ? `<img src="${b.content.imageUrl}" alt="${b.content.imageAlt || 'Hero'}" className="w-full h-auto rounded-2xl shadow-lg" />` : ''}
         </div>
       </section>`;
         }
         if (b.type === 'features_grid') {
           return `
-      {/* Feature deck */}
+      {/* Features */}
       <section className="w-full px-6 md:px-12 py-16" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="max-w-3xl">
             <h2 className="text-3xl font-extrabold tracking-tight">${b.content.title}</h2>
-            <p className="text-sm opacity-80 mt-2">${b.content.description}</p>
+            ${b.content.description ? `<p className="text-sm opacity-80 mt-2">${b.content.description}</p>` : ''}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             ${(b.content.features || []).map(f => `
-            <div className="p-6 border rounded-2xl space-y-3" style={{ borderColor: '${b.styles.textColor}15' }}>
-              <div className="w-9 h-9 flex items-center justify-center rounded-xl font-bold bg-blue-50 text-blue-600">✦</div>
+            <div className="p-6 border rounded-2xl space-y-3">
               <h3 className="font-bold text-sm">${f.title}</h3>
               <p className="text-xs opacity-80 leading-relaxed">${f.description}</p>
             </div>`).join('\n            ')}
@@ -362,76 +433,32 @@ export default function RenderedLanding() {
         </div>
       </section>`;
         }
-        if (b.type === 'testimonials') {
+        if (b.type === 'cta_block') {
           return `
-      {/* Testimonials */}
-      <section className="w-full px-6 md:px-12 py-16" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-5xl mx-auto space-y-10 text-center">
+      {/* CTA */}
+      <section className="w-full px-6 md:px-12 py-16 text-center" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
+        <div className="max-w-4xl mx-auto space-y-6">
           <h2 className="text-3xl font-black tracking-tight">${b.content.title}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            ${(b.content.testimonials || []).map(t => `
-            <div className="p-8 border rounded-2xl text-left bg-white/40 backdrop-blur-sm shadow-sm">
-              <p className="text-xs italic">"${t.quote}"</p>
-              <div className="flex items-center gap-3 mt-4">
-                <img src="${t.avatarUrl}" alt="author" className="w-9 h-9 rounded-full object-cover" />
-                <div>
-                  <h4 className="font-bold text-xs">${t.author}</h4>
-                  <p className="text-[10px] opacity-70">${t.role}</p>
-                </div>
-              </div>
-            </div>`).join('\n            ')}
-          </div>
+          <p className="text-sm opacity-90 max-w-2xl mx-auto">${b.content.description}</p>
+          <a href="${b.content.primaryBtnUrl || '#'}" className="inline-block px-6 py-3 rounded-xl font-bold text-xs text-white" style={{ backgroundColor: '${b.styles.brandColor}' }}>${b.content.primaryBtnText || 'Get Started'}</a>
         </div>
       </section>`;
         }
-        if (b.type === 'pricing_cards') {
+        if (b.type === 'footer') {
           return `
-      {/* Pricing segments */}
-      <section className="w-full px-6 md:px-12 py-16" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-7xl mx-auto space-y-10 text-center">
-          <h2 className="text-3xl font-extrabold">${b.content.title}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            ${(b.content.pricingPlans || []).map(p => `
-            <div className="p-8 border rounded-2xl flex flex-col justify-between ${p.popular ? 'ring-2 ring-indigo-505' : ''}">
-              <div className="space-y-4 text-left">
-                <h3 className="text-base font-bold">${p.name}</h3>
-                <div className="text-2xl font-extrabold">${p.price} <span className="text-xs font-normal opacity-70">/{p.period}</span></div>
-                <ul className="space-y-2 text-xs">
-                  ${p.features.map(f => `<li>✓ {f}</li>`).join('\n                  ')}
-                </ul>
-              </div>
-              <button className="w-full mt-6 py-2 rounded-xl text-xs font-semibold border block">
-                {p.btnText}
-              </button>
-            </div>`).join('\n            ')}
+      {/* Footer */}
+      <footer className="w-full px-6 md:px-12 py-8 border-t" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+          <span className="font-black text-base" style={{ color: '${b.styles.brandColor}' }}>${b.content.brandName}</span>
+          <span className="opacity-60">${b.content.copyright}</span>
+          <div className="flex gap-4 opacity-60">
+            ${(b.content.links || []).map(l => `<a href="${l.url}" className="hover:opacity-100">${l.label}</a>`).join('\n            ')}
           </div>
         </div>
-      </section>`;
+      </footer>`;
         }
-        if (b.type === 'contact_form') {
-          return `
-      {/* Capture Forms */}
-      <section className="w-full px-6 md:px-12 py-16" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-md mx-auto space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-extrabold">{b.content.title}</h2>
-            <p className="text-xs opacity-75">{b.content.description}</p>
-          </div>
-          <form className="space-y-4">
-            ${(b.content.formFields || []).map(f => `
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold opacity-80">${f.label}</label>
-              ${f.type === 'textarea' ? `
-              <textarea placeholder="${f.placeholder}" className="w-full p-2 border rounded-lg bg-white/50 text-xs" rows={3}></textarea>` : `
-              <input type="${f.type}" placeholder="${f.placeholder}" className="w-full p-2 border rounded-lg bg-white/50 text-xs" />`}
-            </div>`).join('\n            ')}
-            <button type="button" className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold">${b.content.formBtnText || 'Submit'}</button>
-          </form>
-        </div>
-      </section>`;
-        }
-        return `      {/* Spacer / Divider segment / Other */}
-      <div style={{ backgroundColor: '${b.styles.bgColor}', height: '${b.type === 'spacer' ? (b.content.spacerHeight || 48) : '2'}px' }} />`;
+        return `      {/* ${b.type} block */}
+      <div style={{ backgroundColor: '${b.styles.bgColor}', height: '${b.type === 'spacer' ? (b.content.spacerHeight || 48) : 2}px' }} />`;
       }).join('\n')}
     </div>
   );
@@ -462,7 +489,7 @@ export default function RenderedLanding() {
   const triggerExport = (format: 'html' | 'react') => {
     const code = format === 'html' ? generateStaticHTML(project) : generateReactCode(project);
     setExportModalContent({
-      title: format === 'html' ? 'Export HTML Template' : 'Export React Developer Code',
+      title: format === 'html' ? 'Export HTML Template' : 'Export React Component',
       code,
       type: format
     });
@@ -479,7 +506,7 @@ export default function RenderedLanding() {
 
   const handleDownloadFile = () => {
     if (exportModalContent) {
-      const element = document.createElement("a");
+      const element = document.createElement('a');
       const file = new Blob([exportModalContent.code], { type: 'text/plain' });
       element.href = URL.createObjectURL(file);
       element.download = exportModalContent.type === 'html' ? 'landy-landing.html' : 'RenderedLanding.tsx';
@@ -489,10 +516,12 @@ export default function RenderedLanding() {
     }
   };
 
+  const closeModal = () => setExportModalContent(null);
+
   return (
     <header className="h-[56px] min-h-[56px] border-b border-slate-200 bg-white flex items-center justify-between px-4 select-none relative z-50 animate-fade-in">
       
-      {/* Brand Logo & Name */}
+      {/* Brand */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white text-base tracking-tight">
           L
@@ -503,205 +532,184 @@ export default function RenderedLanding() {
         </div>
       </div>
 
-      {/* Undo/Redo & Device switch buttons */}
+      {/* Viewport & undo/redo */}
       {!isPreviewMode && (
         <div className="hidden md:flex items-center border border-slate-200 bg-slate-50 rounded-xl p-1 gap-1">
-          <button 
-            onClick={onUndo} 
+          <button
+            onClick={onUndo}
             disabled={!canUndo}
-            title="Undo project change (Ctrl+Z)"
-            className={`p-1.5 rounded-lg transition-colors ${
-              canUndo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'
-            }`}
+            title="Undo (Ctrl+Z)"
+            className={`p-1.5 rounded-lg transition-colors ${canUndo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}
           >
             <Undo2 className="w-4 h-4" />
           </button>
-          <button 
-            onClick={onRedo} 
+          <button
+            onClick={onRedo}
             disabled={!canRedo}
-            title="Redo project change (Ctrl+Shift+Z)"
-            className={`p-1.5 rounded-lg transition-colors ${
-              canRedo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'
-            }`}
+            title="Redo (Ctrl+Shift+Z)"
+            className={`p-1.5 rounded-lg transition-colors ${canRedo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}
           >
             <Redo2 className="w-4 h-4" />
           </button>
 
           <div className="w-px h-4 bg-slate-200 mx-1" />
 
-          {/* Device Frames Selector */}
-          <button
-            onClick={() => setViewport('desktop')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-              viewport === 'desktop' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Monitor className="w-4 h-4" /> Desk
-          </button>
-          <button
-            onClick={() => setViewport('laptop')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-              viewport === 'laptop' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Laptop className="w-4 h-4" /> Laptop
-          </button>
-          <button
-            onClick={() => setViewport('tablet')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-              viewport === 'tablet' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Tablet className="w-4 h-4" /> Tablet
-          </button>
-          <button
-            onClick={() => setViewport('mobile')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-              viewport === 'mobile' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Smartphone className="w-4 h-4" /> Mobile
-          </button>
+          {([
+            { key: 'desktop', icon: Monitor, label: 'Desk' },
+            { key: 'laptop', icon: Laptop, label: 'Laptop' },
+            { key: 'tablet', icon: Tablet, label: 'Tablet' },
+            { key: 'mobile', icon: Smartphone, label: 'Mobile' },
+          ] as const).map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setViewport(key)}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${viewport === key ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <Icon className="w-4 h-4" /> {label}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Preview, Export and Publish Timeline menu alignment */}
+      {/* Right actions */}
       <div className="flex items-center gap-2">
         
-        {/* Zoom selector */}
+        {/* Zoom */}
         {!isPreviewMode && (
           <div className="flex items-center border border-slate-200 bg-slate-50 px-2 py-1 rounded-xl gap-2 text-xs font-bold text-slate-500 mr-2">
-            <button onClick={() => setZoom(Math.max(40, zoom - 10))} className="hover:text-slate-800 disabled:opacity-40" disabled={zoom <= 50}>-</button>
-            <span className="w-8 text-center">{zoom}%</span>
-            <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="hover:text-slate-800 disabled:opacity-40" disabled={zoom >= 110}>+</button>
+            <button onClick={() => setZoom(Math.max(40, zoom - 10))} className="hover:text-slate-800 disabled:opacity-40 w-4 text-center" disabled={zoom <= 50}>−</button>
+            <span className="w-8 text-center tabular-nums">{zoom}%</span>
+            <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="hover:text-slate-800 disabled:opacity-40 w-4 text-center" disabled={zoom >= 110}>+</button>
           </div>
         )}
 
-        {/* Live Preview Toggle */}
+        {/* Preview toggle */}
         <button
           onClick={() => setIsPreviewMode(!isPreviewMode)}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-            isPreviewMode 
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' 
+            isPreviewMode
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
               : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
           }`}
         >
-          {isPreviewMode ? (
-            <>
-              <EyeOff className="w-4 h-4" /> Build Canvas
-            </>
-          ) : (
-            <>
-              <Eye className="w-4 h-4" /> Live Preview
-            </>
-          )}
+          {isPreviewMode ? <><EyeOff className="w-4 h-4" /> Build Canvas</> : <><Eye className="w-4 h-4" /> Live Preview</>}
         </button>
 
-        {/* Export center dropdown */}
+        {/* Export dropdown */}
         {!isPreviewMode && (
-          <div className="relative">
+          <div className="relative" ref={exportDropdownRef}>
             <button
-              onClick={() => setShowExportDropdown(!showExportDropdown)}
-              className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-all"
+              onClick={() => setShowExportDropdown(v => !v)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all ${showExportDropdown ? 'bg-slate-700 text-white' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
             >
               <Download className="w-4 h-4" /> Export
             </button>
-            
+
             {showExportDropdown && (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200 p-2 w-56 shadow-xl animate-scale-in">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-3 py-1.5 mb-1">Developer Exporters</span>
-                
+              <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200 p-2 w-56 shadow-xl z-50">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-3 py-1.5 mb-1">Export Format</span>
                 <button
                   onClick={() => triggerExport('html')}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all font-semibold"
                 >
-                  <Code className="w-4 h-4 text-emerald-500" /> Precompiled HTML & CSS
+                  <Code className="w-4 h-4 text-emerald-500" /> HTML + Tailwind CSS
                 </button>
-                
                 <button
                   onClick={() => triggerExport('react')}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all font-semibold"
                 >
-                  <FileCode className="w-4 h-4 text-indigo-505 text-indigo-500" /> React TypeScript Component
+                  <FileCode className="w-4 h-4 text-indigo-500" /> React TypeScript
                 </button>
               </div>
             )}
           </div>
         )}
 
-        {/* Timeline publish center */}
+        {/* Publish */}
         {!isPreviewMode && (
           <button
             onClick={onPublishClick}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/10 transition-all hover:translate-y-[-1px]"
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/10 transition-all hover:-translate-y-px"
           >
-            <Share2 className="w-4 h-4 animate-pulse" /> Publish
+            <Share2 className="w-4 h-4" /> Publish
           </button>
         )}
-
       </div>
 
-      {/* Code Viewer Export modal overlay */}
+      {/* Export Modal — click backdrop or Escape to close */}
       {exportModalContent && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 text-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-800 overflow-hidden">
-            
-            <div className="px-5 py-4 bg-slate-950 flex justify-between items-center border-b border-slate-800">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={exportModalContent.title}
+        >
+          <div
+            ref={modalRef}
+            className="bg-slate-900 text-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-800 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="px-5 py-4 bg-slate-950 flex justify-between items-center border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
                 <Code className="w-5 h-5 text-indigo-400" />
                 <h3 className="font-bold text-sm tracking-tight">{exportModalContent.title}</h3>
+                <span className="text-[9px] bg-slate-800 text-slate-400 font-mono px-2 py-0.5 rounded-full">
+                  {exportModalContent.type === 'html' ? '.html' : '.tsx'}
+                </span>
               </div>
-              <button 
-                onClick={() => setExportModalContent(null)}
-                className="text-xs px-2.5 py-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              <button
+                onClick={closeModal}
+                title="Close (Esc)"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors group"
               >
-                Close View
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 bg-[#0a0f1d] font-mono text-[11px] leading-relaxed text-slate-300">
+            {/* Code area */}
+            <div className="flex-1 overflow-y-auto p-5 bg-[#0a0f1d] font-mono text-[11px] leading-relaxed text-slate-300 min-h-0">
               <pre className="whitespace-pre-wrap selection:bg-indigo-500/35 overflow-x-auto">{exportModalContent.code}</pre>
             </div>
 
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-between items-center">
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <AlertCircle className="w-3.5 h-3.5 text-indigo-400" />
-                {exportModalContent.type === 'html' 
-                  ? 'Includes Tailwind CDN. Safe for drag/drop anywhere or saving to static servers.' 
-                  : 'Import this block cleanly into existing React bundles. Requires Tailwind CSS.'}
+            {/* Modal footer */}
+            <div className="px-5 py-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center shrink-0 gap-4">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 min-w-0">
+                <AlertCircle className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span className="truncate">
+                  {exportModalContent.type === 'html'
+                    ? 'Includes Tailwind CDN — open directly in any browser.'
+                    : 'Import into any React project with Tailwind CSS.'}
+                </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={closeModal}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  Close
+                </button>
                 <button
                   onClick={handleCopyCode}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
-                    copied 
-                      ? 'bg-emerald-600 text-white' 
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
                   }`}
                 >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white" /> Copied!
-                    </>
-                  ) : (
-                    'Copy to Clipboard'
-                  )}
+                  {copied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : 'Copy Code'}
                 </button>
-
                 <button
                   onClick={handleDownloadFile}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
                 >
-                  <Download className="w-3.5 h-3.5" /> Download File
+                  <Download className="w-3.5 h-3.5" /> Download
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}
-
     </header>
   );
 }
