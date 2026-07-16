@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ProjectState, Block, SelectionState, BlockType } from '../types';
+import { createBlockByType } from '../utils/defaultBlocks';
 import {
   ArrowUp, ArrowDown, Trash2, Copy, Sparkles, Star, Check,
   ChevronDown, ChevronUp, Plus, Image, Type, LayoutTemplate,
@@ -194,6 +195,18 @@ export default function CanvasArea({
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, [selection.blockId, isPreviewMode, viewport, zoom, project.blocks]);
+
+  // Insert a freshly-created block at a specific position in the list.
+  // Used by every "+" adder between/around blocks so it lands exactly
+  // where the user clicked instead of always appending to the end.
+  const insertBlockAt = useCallback((type: BlockType, position: number) => {
+    const newId = `${type}-${Date.now()}`;
+    const newBlock = createBlockByType(type, newId);
+    const next = [...project.blocks];
+    next.splice(position, 0, newBlock);
+    onReorderBlocks?.(next);
+    setSelection({ blockId: newId, elementId: null });
+  }, [project.blocks, onReorderBlocks, setSelection]);
 
   const getViewportWidth = () => {
     switch (viewport) {
@@ -787,17 +800,9 @@ export default function CanvasArea({
 
                 return (
                   <React.Fragment key={block.id}>
-                    {/* Between-block add button */}
+                    {/* Between-block add button (before the first block) */}
                     {idx === 0 && (
-                      <BetweenBlockAdder onAdd={(type) => {
-                        // Add at beginning
-                        const newId = `${type}-${Date.now()}`;
-                        const { createBlockByType } = require('../utils/defaultBlocks');
-                        const newBlock = createBlockByType(type, newId);
-                        const next = [newBlock, ...project.blocks];
-                        onReorderBlocks?.(next);
-                        setSelection({ blockId: newId, elementId: null });
-                      }} />
+                      <BetweenBlockAdder onAdd={(type) => insertBlockAt(type, 0)} />
                     )}
 
                     <div
@@ -890,14 +895,8 @@ export default function CanvasArea({
                       </div>
                     </div>
 
-                    {/* Between-block add button after each block */}
-                    <BetweenBlockAdder onAdd={(type) => {
-                      // We need to use onAddBlock but insert after idx
-                      // Since onAddBlock appends, we'll add then reorder
-                      onAddBlock(type);
-                      // The new block will be at end; we'll move it after current idx
-                      // This is a simplified version - full implementation would need insert callback
-                    }} />
+                    {/* Between-block add button after this block — inserts at idx + 1, exactly where clicked */}
+                    <BetweenBlockAdder onAdd={(type) => insertBlockAt(type, idx + 1)} />
                   </React.Fragment>
                 );
               })}
