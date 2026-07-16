@@ -5,7 +5,7 @@ import {
   ArrowUp, ArrowDown, Trash2, Copy, Sparkles, Star, Check,
   ChevronDown, ChevronUp, Plus, Image, Type, LayoutTemplate,
   Move, AlignCenter, Bold, Italic, Underline, Link,
-  Edit3, ZoomIn, RefreshCw, X
+  Edit3, ZoomIn, RefreshCw, X, ImagePlus
 } from 'lucide-react';
 
 interface CanvasAreaProps {
@@ -168,6 +168,19 @@ const ImageHoverOverlay = ({
   );
 };
 
+// Reads a File as a base64 data URL
+const readFileAsDataURL = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+// True while the thing being dragged over the canvas is an OS file (not an internal block)
+const isFileDrag = (e: React.DragEvent) =>
+  Array.from(e.dataTransfer?.types || []).includes('Files');
+
 export default function CanvasArea({
   project, viewport, zoom, selection, setSelection,
   onUpdateBlock, onDeleteBlock, onDuplicateBlock, onMoveBlock,
@@ -180,6 +193,8 @@ export default function CanvasArea({
   const [dragOverPos, setDragOverPos] = useState<'top' | 'bottom'>('top');
   const [openFaqIdx, setOpenFaqIdx] = useState<Record<string, number | null>>({});
   const [hoveredBlock, setHoveredBlock] = useState<string | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const fileDragDepth = useRef(0);
 
   useEffect(() => {
     if (!selection.blockId || isPreviewMode) { setDimensions(null); return; }
@@ -207,6 +222,43 @@ export default function CanvasArea({
     onReorderBlocks?.(next);
     setSelection({ blockId: newId, elementId: null });
   }, [project.blocks, onReorderBlocks, setSelection]);
+
+  // Drag an image file from the OS straight onto the canvas to create image blocks
+  const handleFileDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    fileDragDepth.current = 0;
+    setIsDraggingFile(false);
+    const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
+    if (!files.length || !onReorderBlocks) return;
+
+    const dataUrls = await Promise.all(files.map(readFileAsDataURL));
+    const newBlocks = dataUrls.map((url, i) => {
+      const newId = `image_block-${Date.now()}-${i}`;
+      const block = createBlockByType('image_block', newId);
+      return { ...block, content: { ...block.content, imageUrl: url } };
+    });
+
+    onReorderBlocks([...project.blocks, ...newBlocks]);
+    setSelection({ blockId: newBlocks[newBlocks.length - 1].id, elementId: null });
+  }, [project.blocks, onReorderBlocks, setSelection]);
+
+  const handleFileDragEnter = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    fileDragDepth.current += 1;
+    setIsDraggingFile(true);
+  }, []);
+
+  const handleFileDragOver = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+  }, []);
+
+  const handleFileDragLeave = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    fileDragDepth.current = Math.max(0, fileDragDepth.current - 1);
+    if (fileDragDepth.current === 0) setIsDraggingFile(false);
+  }, []);
 
   const getViewportWidth = () => {
     switch (viewport) {
@@ -753,7 +805,21 @@ export default function CanvasArea({
       className="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8 flex justify-center items-start min-h-0 relative"
       style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px' }}
       onClick={() => setSelection({ blockId: null, elementId: null })}
+      onDragEnter={handleFileDragEnter}
+      onDragOver={handleFileDragOver}
+      onDragLeave={handleFileDragLeave}
+      onDrop={handleFileDrop}
     >
+      {/* Drop-to-add-image overlay — purely visual feedback, sits above everything, ignores pointer events */}
+      {isDraggingFile && (
+        <div className="absolute inset-4 md:inset-8 z-[60] pointer-events-none rounded-2xl border-2 border-dashed border-indigo-500 bg-indigo-500/5 flex flex-col items-center justify-center gap-2">
+          <div className="w-12 h-12 rounded-2xl bg-white shadow-lg flex items-center justify-center">
+            <ImagePlus className="w-6 h-6 text-indigo-600" />
+          </div>
+          <p className="text-xs font-bold text-indigo-700 bg-white/90 px-3 py-1 rounded-full shadow-sm">Drop to add image block</p>
+        </div>
+      )}
+
       <div
         className={`w-full transition-all duration-300 mx-auto flex flex-col shadow-xl overflow-hidden ${
           viewport === 'mobile' || viewport === 'tablet'
@@ -781,7 +847,7 @@ export default function CanvasArea({
                 <Sparkles className="w-8 h-8 text-indigo-400 animate-pulse" />
               </div>
               <h4 className="font-black text-slate-800 text-base mb-1">Canvas is empty</h4>
-              <p className="text-xs text-slate-400 max-w-xs mb-6">Add blocks from the left panel, or start with a quick template below.</p>
+              <p className="text-xs text-slate-400 max-w-xs mb-6">Add blocks from the left panel, drag an image straight in, or start with a quick template below.</p>
               <div className="grid grid-cols-2 gap-2 max-w-xs">
                 {(['navbar', 'hero_section', 'features_grid', 'cta_block'] as const).map(bt => (
                   <button key={bt} onClick={() => onAddBlock(bt)}
