@@ -1,13 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { ProjectState, Block, StyleConfig, SelectionState, BlockType } from '../types';
-import {
-  Trash2, Copy, ArrowUp, ArrowDown, Layers, Settings, AlignLeft, AlignCenter, AlignRight,
-  Check, Sparkles, Search, LayoutTemplate, SquareEqual, MessageSquare, CreditCard, Mail,
-  Image, Video, Navigation, Minimize, PlayCircle, ToggleRight, Plus, PlusCircle, BarChart2,
-  Type, Users, HelpCircle, TrendingUp, Grid, Palette, ChevronDown, ChevronUp, Sliders,
-  Link, Upload, RefreshCw, Youtube, ExternalLink, BookOpen, ShoppingBag, DollarSign,
-  Zap, Globe, Star, Camera, Film, Music, X, Eye
-} from 'lucide-react';
 
 interface RightPropertiesPanelProps {
   project: ProjectState;
@@ -26,7 +18,6 @@ interface ComponentOption {
   label: string;
   description: string;
   category: 'header_footer' | 'marketing' | 'structure' | 'rich_media' | 'content';
-  icon: React.ComponentType<{ className?: string }>;
   isNew?: boolean;
 }
 
@@ -89,7 +80,6 @@ const STOCK_PHOTOS = {
 // Stock photo picker component
 const StockPhotoPicker = ({ onSelect }: { onSelect: (url: string) => void }) => {
   const [activeCategory, setActiveCategory] = useState('Business');
-  const [hovered, setHovered] = useState<string | null>(null);
   const categories = Object.keys(STOCK_PHOTOS);
 
   return (
@@ -105,8 +95,6 @@ const StockPhotoPicker = ({ onSelect }: { onSelect: (url: string) => void }) => 
       <div className="grid grid-cols-2 gap-1.5">
         {(STOCK_PHOTOS[activeCategory as keyof typeof STOCK_PHOTOS] || []).map((url, i) => (
           <div key={i} className="relative group cursor-pointer rounded-lg overflow-hidden aspect-video"
-            onMouseEnter={() => setHovered(url)}
-            onMouseLeave={() => setHovered(null)}
             onClick={() => onSelect(url)}>
             <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
@@ -142,32 +130,32 @@ const convertToEmbedUrl = (url: string): string => {
 // Template presets for different page types
 const PAGE_TEMPLATES = [
   {
-    label: '📚 Book Launch', type: 'book',
+    label: 'Book Launch', type: 'book',
     desc: 'Perfect for selling books, ebooks, and courses',
     blocks: ['navbar', 'hero_section', 'features_grid', 'testimonials', 'pricing_cards', 'cta_block', 'footer'] as BlockType[]
   },
   {
-    label: '💰 Affiliate Page', type: 'affiliate',
+    label: 'Affiliate Page', type: 'affiliate',
     desc: 'Product review & affiliate marketing',
     blocks: ['navbar', 'hero_section', 'stats_block', 'features_grid', 'testimonials', 'faq_block', 'cta_block', 'footer'] as BlockType[]
   },
   {
-    label: '🚀 SaaS Product', type: 'saas',
+    label: 'SaaS Product', type: 'saas',
     desc: 'Software as a Service landing page',
     blocks: ['navbar', 'hero_section', 'logo_bar', 'features_grid', 'pricing_cards', 'testimonials', 'cta_block', 'footer'] as BlockType[]
   },
   {
-    label: '🎨 Portfolio', type: 'portfolio',
+    label: 'Portfolio', type: 'portfolio',
     desc: 'Showcase your work and projects',
     blocks: ['navbar', 'hero_section', 'image_block', 'team_block', 'testimonials', 'contact_form', 'footer'] as BlockType[]
   },
   {
-    label: '🛒 Product Page', type: 'product',
+    label: 'Product Page', type: 'product',
     desc: 'E-commerce style product landing',
     blocks: ['navbar', 'hero_section', 'stats_block', 'features_grid', 'testimonials', 'faq_block', 'pricing_cards', 'footer'] as BlockType[]
   },
   {
-    label: '📩 Lead Capture', type: 'lead',
+    label: 'Lead Capture', type: 'lead',
     desc: 'Collect emails and leads',
     blocks: ['navbar', 'hero_section', 'features_grid', 'contact_form', 'footer'] as BlockType[]
   },
@@ -191,23 +179,23 @@ export default function RightPropertiesPanel({
   const selectedBlock = project.blocks.find(b => b.id === selection.blockId);
 
   const componentOptions: ComponentOption[] = [
-    { type: 'navbar', label: 'Navbar', description: 'Top navigation with brand, links & CTA.', category: 'header_footer', icon: Navigation },
-    { type: 'hero_section', label: 'Hero Section', description: 'Bold headline, description & CTA buttons.', category: 'marketing', icon: LayoutTemplate },
-    { type: 'text_block', label: 'Text Block', description: 'Rich editable text, headings, blockquotes.', category: 'content', icon: Type, isNew: true },
-    { type: 'stats_block', label: 'Stats / Numbers', description: 'Showcase metrics and key statistics.', category: 'marketing', icon: TrendingUp, isNew: true },
-    { type: 'logo_bar', label: 'Logo Bar', description: 'Trusted by / partner logos showcase.', category: 'marketing', icon: Grid, isNew: true },
-    { type: 'features_grid', label: 'Features Grid', description: '3-column feature cards with icons.', category: 'marketing', icon: SquareEqual },
-    { type: 'testimonials', label: 'Testimonials', description: 'Customer quotes with star ratings.', category: 'marketing', icon: MessageSquare },
-    { type: 'pricing_cards', label: 'Pricing Plans', description: 'Tiered pricing with feature lists.', category: 'marketing', icon: CreditCard },
-    { type: 'faq_block', label: 'FAQ', description: 'Accordion frequently asked questions.', category: 'content', icon: HelpCircle, isNew: true },
-    { type: 'team_block', label: 'Team Section', description: 'Team member cards with avatars.', category: 'content', icon: Users, isNew: true },
-    { type: 'cta_block', label: 'Call to Action', description: 'Full-width attention banner.', category: 'marketing', icon: Sparkles },
-    { type: 'contact_form', label: 'Contact Form', description: 'Lead capture form with fields.', category: 'structure', icon: Mail },
-    { type: 'image_block', label: 'Image', description: 'Image with filters, borders & captions.', category: 'rich_media', icon: Image },
-    { type: 'video_embed', label: 'Video Embed', description: 'YouTube, Vimeo, or Loom video.', category: 'rich_media', icon: PlayCircle },
-    { type: 'divider', label: 'Divider', description: 'Solid, dashed, or dotted separator.', category: 'structure', icon: Minimize },
-    { type: 'spacer', label: 'Spacer', description: 'Adjustable blank vertical space.', category: 'structure', icon: Layers },
-    { type: 'footer', label: 'Footer', description: 'Brand, copyright & page links.', category: 'header_footer', icon: ToggleRight },
+    { type: 'navbar', label: 'Navbar', description: 'Top navigation with brand, links & CTA.', category: 'header_footer' },
+    { type: 'hero_section', label: 'Hero Section', description: 'Bold headline, description & CTA buttons.', category: 'marketing' },
+    { type: 'text_block', label: 'Text Block', description: 'Rich editable text, headings, blockquotes.', category: 'content', isNew: true },
+    { type: 'stats_block', label: 'Stats / Numbers', description: 'Showcase metrics and key statistics.', category: 'marketing', isNew: true },
+    { type: 'logo_bar', label: 'Logo Bar', description: 'Trusted by / partner logos showcase.', category: 'marketing', isNew: true },
+    { type: 'features_grid', label: 'Features Grid', description: '3-column feature cards with icons.', category: 'marketing' },
+    { type: 'testimonials', label: 'Testimonials', description: 'Customer quotes with star ratings.', category: 'marketing' },
+    { type: 'pricing_cards', label: 'Pricing Plans', description: 'Tiered pricing with feature lists.', category: 'marketing' },
+    { type: 'faq_block', label: 'FAQ', description: 'Accordion frequently asked questions.', category: 'content', isNew: true },
+    { type: 'team_block', label: 'Team Section', description: 'Team member cards with avatars.', category: 'content', isNew: true },
+    { type: 'cta_block', label: 'Call to Action', description: 'Full-width attention banner.', category: 'marketing' },
+    { type: 'contact_form', label: 'Contact Form', description: 'Lead capture form with fields.', category: 'structure' },
+    { type: 'image_block', label: 'Image', description: 'Image with filters, borders & captions.', category: 'rich_media' },
+    { type: 'video_embed', label: 'Video Embed', description: 'YouTube, Vimeo, or Loom video.', category: 'rich_media' },
+    { type: 'divider', label: 'Divider', description: 'Solid, dashed, or dotted separator.', category: 'structure' },
+    { type: 'spacer', label: 'Spacer', description: 'Adjustable blank vertical space.', category: 'structure' },
+    { type: 'footer', label: 'Footer', description: 'Brand, copyright & page links.', category: 'header_footer' },
   ];
 
   const categoryMap: Record<string, string> = {
@@ -225,18 +213,15 @@ export default function RightPropertiesPanel({
   const SectionHeader = ({ title, sKey }: { title: string; sKey: string }) => (
     <button onClick={() => toggleSection(sKey)} className="w-full flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest py-1 mb-2 hover:text-slate-600 transition-colors">
       <span>{title}</span>
-      <div className={`transition-transform duration-200 ${expandedSections[sKey] ? 'rotate-180' : ''}`}>
-        <ChevronDown className="w-3 h-3" />
-      </div>
+      <span className="text-[9px] font-bold normal-case tracking-normal text-slate-400">{expandedSections[sKey] ? 'Hide' : 'Show'}</span>
     </button>
   );
 
   const ColorSwatch = ({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) => (
     <button onClick={onClick}
-      className={`w-full h-6 rounded-md border transition-all cursor-pointer flex items-center justify-center hover:scale-110 ${selected ? 'border-indigo-600 scale-110 shadow-sm ring-1 ring-indigo-400' : 'border-slate-200'}`}
-      style={{ backgroundColor: color }}>
-      {selected && <Check className={`w-3 h-3 ${['#ffffff', '#f8fafc', '#f1f5f9', '#fef08a', '#ffedd5', '#ecfdf5', '#fdf4ff', '#eff6ff', '#fff7ed'].includes(color) ? 'text-slate-800' : 'text-white'}`} />}
-    </button>
+      className={`w-full h-6 rounded-md border transition-all cursor-pointer hover:scale-110 ${selected ? 'border-indigo-600 scale-110 shadow-sm ring-1 ring-indigo-400' : 'border-slate-200'}`}
+      style={{ backgroundColor: color }}
+    />
   );
 
   // Image upload handler
@@ -352,13 +337,13 @@ export default function RightPropertiesPanel({
                   </div>
                   <div className="flex gap-2 items-center">
                     <input placeholder="Label" value={stat.label} onChange={e => { const s = [...(b.content.stats || [])]; s[i] = { ...s[i], label: e.target.value }; upd({ stats: s }); }} className="flex-1 text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
-                    <button onClick={() => { const s = (b.content.stats || []).filter((_, si) => si !== i); upd({ stats: s }); }} className="p-1 text-red-500 bg-red-50 rounded hover:bg-red-100 text-xs">✕</button>
+                    <button onClick={() => { const s = (b.content.stats || []).filter((_, si) => si !== i); upd({ stats: s }); }} className="p-1 text-red-500 bg-red-50 rounded hover:bg-red-100 text-[10px] font-bold">Remove</button>
                   </div>
                 </div>
               ))}
               <button onClick={() => upd({ stats: [...(b.content.stats || []), { value: '100', label: 'New Metric', suffix: '+' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add Stat
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add Stat
               </button>
             </div>
           </div>
@@ -376,15 +361,15 @@ export default function RightPropertiesPanel({
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-bold text-slate-400">Question {i + 1}</span>
-                    <button onClick={() => { const f = (b.content.faqs || []).filter((_, fi) => fi !== i); upd({ faqs: f }); }} className="p-1 text-red-500 bg-red-50 rounded text-xs hover:bg-red-100">✕</button>
+                    <button onClick={() => { const f = (b.content.faqs || []).filter((_, fi) => fi !== i); upd({ faqs: f }); }} className="p-1 text-red-500 bg-red-50 rounded text-[10px] font-bold hover:bg-red-100">Remove</button>
                   </div>
                   <input placeholder="Question" value={faq.question} onChange={e => { const f = [...(b.content.faqs || [])]; f[i] = { ...f[i], question: e.target.value }; upd({ faqs: f }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                   <textarea placeholder="Answer" rows={2} value={faq.answer} onChange={e => { const f = [...(b.content.faqs || [])]; f[i] = { ...f[i], answer: e.target.value }; upd({ faqs: f }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg resize-none" />
                 </div>
               ))}
               <button onClick={() => upd({ faqs: [...(b.content.faqs || []), { question: 'New question?', answer: 'Answer here.' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add FAQ
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add FAQ
               </button>
             </div>
           </div>
@@ -401,7 +386,7 @@ export default function RightPropertiesPanel({
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="flex justify-between">
                     <span className="text-[9px] font-bold text-slate-400">Member {i + 1}</span>
-                    <button onClick={() => { const t = (b.content.team || []).filter((_, ti) => ti !== i); upd({ team: t }); }} className="p-1 text-red-500 bg-red-50 rounded text-xs">✕</button>
+                    <button onClick={() => { const t = (b.content.team || []).filter((_, ti) => ti !== i); upd({ team: t }); }} className="p-1 text-red-500 bg-red-50 rounded text-[10px] font-bold">Remove</button>
                   </div>
                   {member.avatarUrl && <img src={member.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover" />}
                   <input placeholder="Name" value={member.name} onChange={e => { const t = [...(b.content.team || [])]; t[i] = { ...t[i], name: e.target.value }; upd({ team: t }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
@@ -411,8 +396,8 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ team: [...(b.content.team || []), { name: 'Team Member', role: 'Role', bio: 'Bio here.', avatarUrl: '' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add Member
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add Member
               </button>
             </div>
           </div>
@@ -427,12 +412,12 @@ export default function RightPropertiesPanel({
                 <div key={i} className="flex gap-2 items-center">
                   <input placeholder="Name" value={logo.name} onChange={e => { const l = [...(b.content.logos || [])]; l[i] = { ...l[i], name: e.target.value }; upd({ logos: l }); }} className="w-1/3 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                   <input placeholder="Logo URL" value={logo.logoUrl} onChange={e => { const l = [...(b.content.logos || [])]; l[i] = { ...l[i], logoUrl: e.target.value }; upd({ logos: l }); }} className="flex-1 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <button onClick={() => { const l = (b.content.logos || []).filter((_, li) => li !== i); upd({ logos: l }); }} className="p-1 text-red-500 bg-red-50 rounded text-xs">✕</button>
+                  <button onClick={() => { const l = (b.content.logos || []).filter((_, li) => li !== i); upd({ logos: l }); }} className="p-1 text-red-500 bg-red-50 rounded text-[10px] font-bold">Remove</button>
                 </div>
               ))}
               <button onClick={() => upd({ logos: [...(b.content.logos || []), { name: 'Brand', logoUrl: '' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add Logo
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add Logo
               </button>
             </div>
           </div>
@@ -448,12 +433,12 @@ export default function RightPropertiesPanel({
                 <div key={i} className="flex gap-2 items-center">
                   <input value={lnk.label} placeholder="Label" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], label: e.target.value }; upd({ links: l }); }} className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                   <input value={lnk.url} placeholder="#anchor" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], url: e.target.value }; upd({ links: l }); }} className="w-1/2 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <button onClick={() => { const l = (b.content.links || []).filter((_, li) => li !== i); upd({ links: l }); }} className="p-1 bg-red-50 text-red-500 rounded text-xs">✕</button>
+                  <button onClick={() => { const l = (b.content.links || []).filter((_, li) => li !== i); upd({ links: l }); }} className="p-1 bg-red-50 text-red-500 rounded text-[10px] font-bold">Remove</button>
                 </div>
               ))}
               <button onClick={() => upd({ links: [...(b.content.links || []), { label: 'New Link', url: '#' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors">
-                <Plus className="w-3 h-3" /> Add Link
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg hover:bg-indigo-50 transition-colors">
+                + Add Link
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -502,13 +487,13 @@ export default function RightPropertiesPanel({
               )}
               <input placeholder="Paste image URL..." value={b.content.imageUrl || ''} onChange={e => upd({ imageUrl: e.target.value })} className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg" />
               <div className="grid grid-cols-2 gap-2">
-                <label className="flex items-center justify-center gap-1.5 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-colors">
-                  <Upload className="w-3 h-3" /> Upload
+                <label className="flex items-center justify-center py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                  Upload
                   <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, url => upd({ imageUrl: url })); }} />
                 </label>
                 <button onClick={() => setShowStockPhotos(v => !v)}
                   className={`py-2 border rounded-lg text-[10px] font-bold transition-colors ${showStockPhotos ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-600'}`}>
-                  <span className="flex items-center justify-center gap-1"><Camera className="w-3 h-3" /> Stock Photos</span>
+                  Stock Photos
                 </button>
               </div>
               {showStockPhotos && (
@@ -532,15 +517,15 @@ export default function RightPropertiesPanel({
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-bold text-slate-400">Feature {i + 1}</span>
-                    <button onClick={() => { const f = (b.content.features || []).filter((_, fi) => fi !== i); upd({ features: f }); }} className="p-1 bg-red-50 text-red-500 rounded text-xs">✕</button>
+                    <button onClick={() => { const f = (b.content.features || []).filter((_, fi) => fi !== i); upd({ features: f }); }} className="p-1 bg-red-50 text-red-500 rounded text-[10px] font-bold">Remove</button>
                   </div>
                   <input placeholder="Title" value={feat.title} onChange={e => { const f = [...(b.content.features || [])]; f[i] = { ...f[i], title: e.target.value }; upd({ features: f }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                   <textarea placeholder="Description" rows={2} value={feat.description} onChange={e => { const f = [...(b.content.features || [])]; f[i] = { ...f[i], description: e.target.value }; upd({ features: f }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg resize-none" />
                 </div>
               ))}
               <button onClick={() => upd({ features: [...(b.content.features || []), { icon: 'Star', title: 'New Feature', description: 'Describe this feature.' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add Feature
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add Feature
               </button>
             </div>
           </div>
@@ -556,7 +541,7 @@ export default function RightPropertiesPanel({
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="flex justify-between">
                     <span className="text-[9px] font-bold text-slate-400">Review {i + 1}</span>
-                    <button onClick={() => { const ts = (b.content.testimonials || []).filter((_, ti) => ti !== i); upd({ testimonials: ts }); }} className="p-1 bg-red-50 text-red-500 rounded text-xs">✕</button>
+                    <button onClick={() => { const ts = (b.content.testimonials || []).filter((_, ti) => ti !== i); upd({ testimonials: ts }); }} className="p-1 bg-red-50 text-red-500 rounded text-[10px] font-bold">Remove</button>
                   </div>
                   <textarea rows={3} placeholder="Quote" value={t.quote} onChange={e => { const ts = [...(b.content.testimonials || [])]; ts[i] = { ...ts[i], quote: e.target.value }; upd({ testimonials: ts }); }} className="w-full text-[11px] p-2 bg-white border border-slate-200 rounded-lg resize-none" />
                   <div className="grid grid-cols-2 gap-2">
@@ -567,8 +552,8 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ testimonials: [...(b.content.testimonials || []), { quote: 'Great product!', author: 'Customer Name', role: 'Job Title', avatarUrl: '' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add Testimonial
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add Testimonial
               </button>
             </div>
           </div>
@@ -589,7 +574,7 @@ export default function RightPropertiesPanel({
                       <label className="flex items-center gap-1 text-[9px] font-bold text-slate-400 cursor-pointer">
                         <input type="checkbox" checked={!!plan.popular} onChange={e => { const p = [...(b.content.pricingPlans || [])]; p[i] = { ...p[i], popular: e.target.checked }; upd({ pricingPlans: p }); }} /> Popular
                       </label>
-                      <button onClick={() => { const p = (b.content.pricingPlans || []).filter((_, pi) => pi !== i); upd({ pricingPlans: p }); }} className="p-1 bg-red-50 text-red-500 rounded text-xs">✕</button>
+                      <button onClick={() => { const p = (b.content.pricingPlans || []).filter((_, pi) => pi !== i); upd({ pricingPlans: p }); }} className="p-1 bg-red-50 text-red-500 rounded text-[10px] font-bold">Remove</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -602,8 +587,8 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ pricingPlans: [...(b.content.pricingPlans || []), { name: 'Plan', price: '$0', period: 'mo', features: ['Feature 1'], btnText: 'Get Started' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add Plan
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add Plan
               </button>
             </div>
           </div>
@@ -637,7 +622,7 @@ export default function RightPropertiesPanel({
                 <div key={i} className="p-2 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                   <div className="flex justify-between">
                     <span className="text-[9px] text-slate-400 font-bold">Field {i + 1}</span>
-                    <button onClick={() => { const ff = (b.content.formFields || []).filter((_, fi) => fi !== i); upd({ formFields: ff }); }} className="p-0.5 bg-red-50 text-red-500 rounded text-xs">✕</button>
+                    <button onClick={() => { const ff = (b.content.formFields || []).filter((_, fi) => fi !== i); upd({ formFields: ff }); }} className="p-0.5 bg-red-50 text-red-500 rounded text-[10px] font-bold">Remove</button>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
                     <input placeholder="Label" value={f.label} onChange={e => { const ff = [...(b.content.formFields || [])]; ff[i] = { ...ff[i], label: e.target.value }; upd({ formFields: ff }); }} className="col-span-2 text-[11px] p-1.5 bg-white border border-slate-200 rounded" />
@@ -652,8 +637,8 @@ export default function RightPropertiesPanel({
                 </div>
               ))}
               <button onClick={() => upd({ formFields: [...(b.content.formFields || []), { label: 'New Field', placeholder: 'Enter value...', type: 'text' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-100 transition-colors">
-                <Plus className="w-3 h-3" /> Add Field
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 rounded-lg hover:bg-indigo-100 transition-colors">
+                + Add Field
               </button>
             </div>
           </div>
@@ -665,8 +650,8 @@ export default function RightPropertiesPanel({
             {b.content.imageUrl && (
               <div className="relative">
                 <img src={b.content.imageUrl} alt="" className="w-full h-32 object-cover rounded-xl" />
-                <button onClick={() => upd({ imageUrl: '' })} className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors">
-                  <X className="w-3 h-3" />
+                <button onClick={() => upd({ imageUrl: '' })} className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-bold px-2 py-1 rounded-lg hover:bg-red-600 transition-colors">
+                  Remove
                 </button>
               </div>
             )}
@@ -677,12 +662,10 @@ export default function RightPropertiesPanel({
             <div className="grid grid-cols-2 gap-2">
               <label className="border border-dashed border-indigo-200 rounded-xl p-3 text-center relative bg-white hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors cursor-pointer">
                 <input type="file" accept="image/*" onChange={e => { const file = e.target.files?.[0]; if (file) handleImageUpload(file, url => upd({ imageUrl: url })); }} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-                <Upload className="w-4 h-4 text-indigo-400 mx-auto mb-1" />
                 <span className="text-[10px] font-bold text-indigo-600">Upload</span>
               </label>
               <button onClick={() => setShowStockPhotos(v => !v)}
                 className={`border rounded-xl p-3 text-center transition-colors cursor-pointer ${showStockPhotos ? 'bg-indigo-600 text-white border-indigo-600' : 'border-dashed border-indigo-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/30'}`}>
-                <Camera className={`w-4 h-4 mx-auto mb-1 ${showStockPhotos ? 'text-white' : 'text-indigo-400'}`} />
                 <span className={`text-[10px] font-bold ${showStockPhotos ? 'text-white' : 'text-indigo-600'}`}>Stock Photos</span>
               </button>
             </div>
@@ -711,8 +694,8 @@ export default function RightPropertiesPanel({
             <InputField label="Title" value={b.content.title || ''} onChange={v => upd({ title: v })} />
             <TextAreaField label="Description" value={b.content.description || ''} onChange={v => upd({ description: v })} rows={2} />
             <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-[10px] font-bold text-indigo-700 block">🎬 Paste any video link</span>
-              <p className="text-[9px] text-slate-400 leading-relaxed">Works with YouTube, Vimeo, and Loom. We'll convert it automatically!</p>
+              <span className="text-[10px] font-bold text-indigo-700 block">Paste any video link</span>
+              <p className="text-[9px] text-slate-400 leading-relaxed">Works with YouTube, Vimeo, and Loom. We'll convert it automatically.</p>
               <div className="flex gap-2">
                 <input
                   value={videoUrl}
@@ -732,8 +715,8 @@ export default function RightPropertiesPanel({
                 </button>
               </div>
               {b.content.videoUrl && (
-                <div className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Video set: {b.content.videoUrl.substring(0, 40)}...
+                <div className="text-[9px] text-emerald-600 font-bold">
+                  Video set: {b.content.videoUrl.substring(0, 40)}...
                 </div>
               )}
             </div>
@@ -755,12 +738,12 @@ export default function RightPropertiesPanel({
                 <div key={i} className="flex gap-2 items-center">
                   <input value={lnk.label} placeholder="Label" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], label: e.target.value }; upd({ links: l }); }} className="flex-1 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
                   <input value={lnk.url} placeholder="URL" onChange={e => { const l = [...(b.content.links || [])]; l[i] = { ...l[i], url: e.target.value }; upd({ links: l }); }} className="flex-1 text-[11px] p-2 bg-white border border-slate-200 rounded-lg" />
-                  <button onClick={() => { const l = (b.content.links || []).filter((_, li) => li !== i); upd({ links: l }); }} className="p-1 bg-red-50 text-red-500 rounded text-xs">✕</button>
+                  <button onClick={() => { const l = (b.content.links || []).filter((_, li) => li !== i); upd({ links: l }); }} className="p-1 bg-red-50 text-red-500 rounded text-[10px] font-bold">Remove</button>
                 </div>
               ))}
               <button onClick={() => upd({ links: [...(b.content.links || []), { label: 'Link', url: '#' }] })}
-                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors">
-                <Plus className="w-3 h-3" /> Add Link
+                className="w-full py-1.5 text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 rounded-lg hover:bg-indigo-50 transition-colors">
+                + Add Link
               </button>
             </div>
           </div>
@@ -835,8 +818,8 @@ export default function RightPropertiesPanel({
           <div className="grid grid-cols-3 gap-1 bg-slate-100 p-0.5 rounded-xl">
             {(['left', 'center', 'right'] as const).map(a => (
               <button key={a} onClick={() => updS({ align: a })}
-                className={`py-2 rounded-lg flex items-center justify-center transition-all ${b.styles.align === a ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
-                {a === 'left' ? <AlignLeft className="w-4 h-4" /> : a === 'center' ? <AlignCenter className="w-4 h-4" /> : <AlignRight className="w-4 h-4" />}
+                className={`py-2 rounded-lg text-[10px] font-bold capitalize transition-all ${b.styles.align === a ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
+                {a}
               </button>
             ))}
           </div>
@@ -902,10 +885,10 @@ export default function RightPropertiesPanel({
                 ))}
               </div>
               <div className="grid grid-cols-4 gap-1">
-                {([['to-r', '→'], ['to-b', '↓'], ['to-br', '↘'], ['to-tr', '↗']] as const).map(([val, icon]) => (
+                {([['to-r', 'Right'], ['to-b', 'Down'], ['to-br', 'Diag \u2198'], ['to-tr', 'Diag \u2197']] as const).map(([val, label]) => (
                   <button key={val} onClick={() => updS({ gradientDirection: val as any })}
-                    className={`py-1.5 text-sm rounded border transition-all ${b.styles.gradientDirection === val ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}>
-                    {icon}
+                    className={`py-1.5 text-[9px] font-bold rounded border transition-all ${b.styles.gradientDirection === val ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}>
+                    {label}
                   </button>
                 ))}
               </div>
@@ -946,12 +929,12 @@ export default function RightPropertiesPanel({
 
         {/* Actions */}
         <div className="flex gap-2 pt-2 border-t border-slate-100">
-          <button onClick={() => onDuplicateBlock(b.id)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors">
-            <Copy className="w-3.5 h-3.5" /> Duplicate
+          <button onClick={() => onDuplicateBlock(b.id)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors">
+            Duplicate
           </button>
           <button onClick={() => { onDeleteBlock(b.id); setSelection({ blockId: null, elementId: null }); }}
-            className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 border border-red-200/40 transition-colors">
-            <Trash2 className="w-3.5 h-3.5" /> Delete
+            className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-xl border border-red-200/40 transition-colors">
+            Delete
           </button>
         </div>
       </div>
@@ -972,7 +955,7 @@ export default function RightPropertiesPanel({
           </div>
         </div>
         <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-[10px] text-amber-700 leading-relaxed">
-          <strong className="font-black block mb-1">📌 Block ID</strong>
+          <strong className="font-black block mb-1">Block ID</strong>
           <code className="font-mono text-[9px] break-all opacity-70">{b.id}</code>
         </div>
       </div>
@@ -992,7 +975,7 @@ export default function RightPropertiesPanel({
             </div>
             <button onClick={() => setSelection({ blockId: null, elementId: null })}
               className="text-[10px] font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 shadow-sm px-2.5 py-1 rounded-lg transition-colors cursor-pointer">
-              ← Back
+              Back
             </button>
           </div>
           <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 gap-0.5">
@@ -1011,10 +994,10 @@ export default function RightPropertiesPanel({
             <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 text-slate-500 font-mono rounded">v4.0</span>
           </div>
           <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 gap-0.5">
-            {[{ key: 'blocks', icon: PlusCircle, label: 'Blocks' }, { key: 'settings', icon: Palette, label: 'Theme' }, { key: 'layers', icon: Layers, label: 'Layers' }].map(({ key, icon: Icon, label }) => (
+            {[{ key: 'blocks', label: 'Blocks' }, { key: 'settings', label: 'Theme' }, { key: 'layers', label: 'Layers' }].map(({ key, label }) => (
               <button key={key} onClick={() => setActiveTab(key as any)}
-                className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all text-[9px] font-black uppercase tracking-wide ${activeTab === key ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>
-                <Icon className="w-3 h-3" /> {label}
+                className={`flex-1 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wide ${activeTab === key ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>
+                {label}
               </button>
             ))}
           </div>
@@ -1034,8 +1017,8 @@ export default function RightPropertiesPanel({
                 <div className="p-3 bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100 rounded-2xl space-y-2">
                   <button onClick={() => setShowTemplates(v => !v)}
                     className="w-full flex items-center justify-between text-xs font-black text-indigo-800">
-                    <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Quick Page Templates</span>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showTemplates ? 'rotate-180' : ''}`} />
+                    <span>Quick Page Templates</span>
+                    <span className="text-[9px] font-bold normal-case tracking-normal text-indigo-500">{showTemplates ? 'Hide' : 'Show'}</span>
                   </button>
                   {showTemplates && (
                     <div className="grid grid-cols-2 gap-1.5 pt-1">
@@ -1065,32 +1048,25 @@ export default function RightPropertiesPanel({
                 </div>
 
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input type="text" placeholder="Search blocks..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
 
                 <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-0.5">
-                  {filtered.map(opt => {
-                    const Icon = opt.icon;
-                    return (
-                      <div key={opt.type} onClick={() => onAddBlock(opt.type)}
-                        className="group p-2.5 border border-slate-100 hover:border-indigo-400 bg-white hover:bg-indigo-50/30 rounded-xl transition-all flex items-start gap-2.5 cursor-pointer relative overflow-hidden hover:shadow-sm">
-                        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-600 scale-y-0 group-hover:scale-y-100 transition-transform origin-top" />
-                        <div className="w-8 h-8 bg-slate-50 group-hover:bg-indigo-100 rounded-lg flex items-center justify-center text-slate-500 group-hover:text-indigo-600 transition-colors shrink-0">
-                          <Icon className="w-4 h-4" />
+                  {filtered.map(opt => (
+                    <div key={opt.type} onClick={() => onAddBlock(opt.type)}
+                      className="group p-2.5 border border-slate-100 hover:border-indigo-400 bg-white hover:bg-indigo-50/30 rounded-xl transition-all flex items-start gap-2.5 cursor-pointer relative overflow-hidden hover:shadow-sm">
+                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-600 scale-y-0 group-hover:scale-y-100 transition-transform origin-top" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-black text-xs text-slate-800 group-hover:text-indigo-700 transition-colors">{opt.label}</h4>
+                          {opt.isNew && <span className="text-[7px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full uppercase tracking-wider">NEW</span>}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="font-black text-xs text-slate-800 group-hover:text-indigo-700 transition-colors">{opt.label}</h4>
-                            {opt.isNew && <span className="text-[7px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full uppercase tracking-wider">NEW</span>}
-                          </div>
-                          <p className="text-[10px] text-slate-400 leading-snug mt-0.5 line-clamp-1">{opt.description}</p>
-                        </div>
-                        <span className="text-[8px] font-black text-slate-300 group-hover:text-indigo-500 pt-0.5">+</span>
+                        <p className="text-[10px] text-slate-400 leading-snug mt-0.5 line-clamp-1">{opt.description}</p>
                       </div>
-                    );
-                  })}
+                      <span className="text-[8px] font-black text-slate-300 group-hover:text-indigo-500 pt-0.5">+</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -1101,14 +1077,12 @@ export default function RightPropertiesPanel({
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Design Tokens</p>
 
                 <div className="p-3 bg-indigo-50/40 border border-indigo-100/60 rounded-2xl space-y-3">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-indigo-900">
-                    <Sparkles className="w-4 h-4 text-indigo-500" /> Visual Themes
-                  </div>
+                  <div className="text-xs font-black text-indigo-900">Visual Themes</div>
                   {([
-                    { id: 'minimal_modern', label: 'Minimal Modern', desc: 'Clean, spacious, neutral', emoji: '✨' },
-                    { id: 'glassmorphism', label: 'Frosted Glass', desc: 'Translucent, blurred surfaces', emoji: '🔮' },
-                    { id: 'neo_brutalist', label: 'Neo-Brutalist', desc: 'Bold borders, heavy shadows', emoji: '⬛' },
-                    { id: 'cosmic_dark', label: 'Cosmic Dark', desc: 'Deep dark, starry palette', emoji: '🌌' }
+                    { id: 'minimal_modern', label: 'Minimal Modern', desc: 'Clean, spacious, neutral' },
+                    { id: 'glassmorphism', label: 'Frosted Glass', desc: 'Translucent, blurred surfaces' },
+                    { id: 'neo_brutalist', label: 'Neo-Brutalist', desc: 'Bold borders, heavy shadows' },
+                    { id: 'cosmic_dark', label: 'Cosmic Dark', desc: 'Deep dark, starry palette' }
                   ] as const).map(thm => (
                     <button key={thm.id} onClick={() => {
                       const s = { ...project.style, theme: thm.id };
@@ -1119,8 +1093,8 @@ export default function RightPropertiesPanel({
                     }}
                       className={`w-full text-left p-2.5 rounded-xl border text-xs transition-all ${project.style.theme === thm.id ? 'border-indigo-600 bg-white font-bold shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200 text-slate-500'}`}>
                       <div className="flex justify-between items-center">
-                        <span className="font-bold">{thm.emoji} {thm.label}</span>
-                        {project.style.theme === thm.id && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                        <span className="font-bold">{thm.label}</span>
+                        {project.style.theme === thm.id && <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wide">Selected</span>}
                       </div>
                       <p className="text-[9px] font-normal text-slate-400 mt-0.5">{thm.desc}</p>
                     </button>
@@ -1144,10 +1118,8 @@ export default function RightPropertiesPanel({
                   <div className="grid grid-cols-6 gap-1">
                     {BG_SWATCHES.map(c => (
                       <div key={c} onClick={() => onChangeStyle({ ...project.style, background: c })}
-                        className={`h-5 rounded border cursor-pointer transition-all hover:scale-110 flex items-center justify-center ${project.style.background === c ? 'border-indigo-600 ring-1 ring-indigo-400' : 'border-slate-200'}`}
-                        style={{ backgroundColor: c }}>
-                        {project.style.background === c && <Check className={`w-3 h-3 ${['#0f172a', '#020617', '#1e293b'].includes(c) ? 'text-white' : 'text-slate-800'}`} />}
-                      </div>
+                        className={`h-5 rounded border cursor-pointer transition-all hover:scale-110 ${project.style.background === c ? 'border-indigo-600 ring-1 ring-indigo-400' : 'border-slate-200'}`}
+                        style={{ backgroundColor: c }} />
                     ))}
                   </div>
                 </div>
@@ -1172,10 +1144,9 @@ export default function RightPropertiesPanel({
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Page Layers ({project.blocks.length})</p>
                 {project.blocks.length === 0 ? (
                   <div className="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
-                    <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                     <p className="text-xs text-slate-400 font-bold">No blocks yet</p>
                     <button onClick={() => setActiveTab('blocks')} className="mt-3 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200/40 font-bold px-3 py-1.5 rounded-xl transition-all">
-                      + Add Block
+                      Add Block
                     </button>
                   </div>
                 ) : (
@@ -1189,9 +1160,9 @@ export default function RightPropertiesPanel({
                           <h4 className="font-bold text-xs text-slate-700 truncate capitalize">{blk.name}</h4>
                         </div>
                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button disabled={idx === 0} onClick={e => { e.stopPropagation(); onMoveBlock(blk.id, 'up'); }} className="p-1 hover:bg-slate-100 rounded disabled:opacity-30 cursor-pointer"><ArrowUp className="w-3 h-3" /></button>
-                          <button disabled={idx === project.blocks.length - 1} onClick={e => { e.stopPropagation(); onMoveBlock(blk.id, 'down'); }} className="p-1 hover:bg-slate-100 rounded disabled:opacity-30 cursor-pointer"><ArrowDown className="w-3 h-3" /></button>
-                          <button onClick={e => { e.stopPropagation(); onDeleteBlock(blk.id); }} className="p-1 text-red-500 hover:bg-red-50 rounded cursor-pointer"><Trash2 className="w-3 h-3" /></button>
+                          <button disabled={idx === 0} onClick={e => { e.stopPropagation(); onMoveBlock(blk.id, 'up'); }} className="px-1.5 py-1 text-[9px] font-bold text-slate-500 hover:bg-slate-100 rounded disabled:opacity-30 cursor-pointer">Up</button>
+                          <button disabled={idx === project.blocks.length - 1} onClick={e => { e.stopPropagation(); onMoveBlock(blk.id, 'down'); }} className="px-1.5 py-1 text-[9px] font-bold text-slate-500 hover:bg-slate-100 rounded disabled:opacity-30 cursor-pointer">Down</button>
+                          <button onClick={e => { e.stopPropagation(); onDeleteBlock(blk.id); }} className="px-1.5 py-1 text-[9px] font-bold text-red-500 hover:bg-red-50 rounded cursor-pointer">Delete</button>
                         </div>
                       </div>
                     ))}
