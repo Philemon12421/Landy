@@ -165,7 +165,7 @@ export default function RightPropertiesPanel({
   project, onChangeStyle, selection, setSelection, onUpdateBlock,
   onDeleteBlock, onDuplicateBlock, onMoveBlock, onAddBlock
 }: RightPropertiesPanelProps) {
-  const [activeTab, setActiveTab] = useState<'blocks' | 'settings' | 'layers'>('blocks');
+  const [activeTab, setActiveTab] = useState<'settings' | 'layers'>('settings');
   const [blockTab, setBlockTab] = useState<'content' | 'appearance' | 'advanced'>('content');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
@@ -217,7 +217,7 @@ export default function RightPropertiesPanel({
     </button>
   );
 
-  const ColorSwatch = ({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) => (
+  const ColorSwatch = ({ color, selected, onClick }: { key?: string; color: string; selected: boolean; onClick: () => void }) => (
     <button onClick={onClick}
       className={`w-full h-6 rounded-md border transition-all cursor-pointer hover:scale-110 ${selected ? 'border-indigo-600 scale-110 shadow-sm ring-1 ring-indigo-400' : 'border-slate-200'}`}
       style={{ backgroundColor: color }}

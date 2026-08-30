@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { ProjectState, Block, SelectionState, BlockType } from '../types';
+import { ProjectState, Block, SelectionState, BlockType, CanvasElement } from '../types';
 import { createBlockByType } from '../utils/defaultBlocks';
 import {
   ArrowUp, ArrowDown, Trash2, Copy, Sparkles, Star, Check,
@@ -181,6 +181,82 @@ const readFileAsDataURL = (file: File): Promise<string> =>
 const isFileDrag = (e: React.DragEvent) =>
   Array.from(e.dataTransfer?.types || []).includes('Files');
 
+
+const RenderCanvasElement = ({ element, isSelected, setSelection, onDoubleClick, setIsDraggingElement, setDragOffset, onUpdateElement, setIsResizing, setResizeStart }: { key?: string, element: CanvasElement, isSelected: boolean, setSelection: any, onDoubleClick: any, setIsDraggingElement: any, setDragOffset: any, onUpdateElement: (id: string, partial: any) => void, setIsResizing: any, setResizeStart: any }) => {
+  const { position, size, styles, content } = element;
+  const [isEditing, setIsEditing] = useState(false);
+
+  const baseStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: `${position.x}px`,
+    top: `${position.y}px`,
+    width: size.width === 'auto' ? 'auto' : `${size.width}px`,
+    height: size.height === 'auto' ? 'auto' : `${size.height}px`,
+    color: styles.color,
+    backgroundColor: styles.backgroundColor,
+    fontSize: styles.fontSize ? `${styles.fontSize}px` : undefined,
+    fontWeight: styles.fontWeight,
+    textAlign: styles.textAlign,
+    borderRadius: styles.borderRadius ? `${styles.borderRadius}px` : undefined,
+    outline: isSelected ? '2px solid #6366f1' : 'none',
+    cursor: 'move',
+    zIndex: isSelected ? 10 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: styles.textAlign === 'center' ? 'center' : styles.textAlign === 'right' ? 'flex-end' : 'flex-start',
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelection({ blockId: element.parentId, elementId: element.id });
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setIsDraggingElement(true);
+  };
+
+  const handleResizeStart = (e: React.MouseEvent, dir: string) => {
+    e.stopPropagation();
+    setIsResizing(dir);
+    setResizeStart({ x: e.clientX, y: e.clientY, w: typeof size.width === 'number' ? size.width : 100, h: typeof size.height === 'number' ? size.height : 100 });
+  };
+
+  const resizeHandles = isSelected && !isEditing && (
+    <>
+      <div className="absolute right-[-6px] top-1/2 w-3 h-3 bg-white border-2 border-indigo-600 rounded-full cursor-e-resize z-20" style={{ transform: 'translateY(-50%)' }} onMouseDown={(e) => handleResizeStart(e, 'e')} />
+      <div className="absolute left-1/2 bottom-[-6px] w-3 h-3 bg-white border-2 border-indigo-600 rounded-full cursor-s-resize z-20" style={{ transform: 'translateX(-50%)' }} onMouseDown={(e) => handleResizeStart(e, 's')} />
+      <div className="absolute right-[-6px] bottom-[-6px] w-3 h-3 bg-white border-2 border-indigo-600 rounded-full cursor-se-resize z-20" onMouseDown={(e) => handleResizeStart(e, 'se')} />
+    </>
+  );
+
+  if (element.type === 'text') {
+    const Tag = content.tag || 'p';
+    return (
+      <Tag
+        style={baseStyle}
+        onMouseDown={(e: any) => { if(!isEditing) handleMouseDown(e); }}
+        onDoubleClick={(e: any) => { e.stopPropagation(); setIsEditing(true); }}
+        onBlur={(e: any) => {
+          setIsEditing(false);
+          const newText = e.currentTarget.textContent || '';
+          if (newText !== content.text) {
+            onUpdateElement(element.id, { content: { ...content, text: newText } });
+          }
+        }}
+        className="canvas-element relative"
+        contentEditable={isEditing}
+        suppressContentEditableWarning={true}
+      >
+        {content.text}
+        {resizeHandles}
+      </Tag>
+    );
+  }
+  if (element.type === 'button') return (<button style={baseStyle} onMouseDown={handleMouseDown} className="canvas-element relative">{content.text}{resizeHandles}</button>);
+  if (element.type === 'image') return (<div style={baseStyle} className="canvas-element relative" onMouseDown={handleMouseDown}><img src={content.imageUrl || 'https://via.placeholder.com/150'} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: baseStyle.borderRadius }} draggable={false}/>{resizeHandles}</div>);
+  if (element.type === 'shape' || element.type === 'container') return (<div style={baseStyle} onMouseDown={handleMouseDown} className="canvas-element relative">{resizeHandles}</div>);
+  return null;
+};
+
 export default function CanvasArea({
   project, viewport, zoom, selection, setSelection,
   onUpdateBlock, onDeleteBlock, onDuplicateBlock, onMoveBlock,
@@ -194,6 +270,76 @@ export default function CanvasArea({
   const [openFaqIdx, setOpenFaqIdx] = useState<Record<string, number | null>>({});
   const [hoveredBlock, setHoveredBlock] = useState<string | null>(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  const [isDraggingElement, setIsDraggingElement] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const [isResizing, setIsResizing] = useState<string | null>(null); // 'e', 's', 'se'
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, w: 0, h: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!selection.elementId || !selection.blockId) return;
+
+      const block = project.blocks.find(b => b.id === selection.blockId);
+      if (!block || !block.elements) return;
+      const elIndex = block.elements.findIndex(el => el.id === selection.elementId);
+      if (elIndex === -1) return;
+
+      const el = block.elements[elIndex];
+
+      if (isDraggingElement) {
+        const container = document.getElementById(`canvas-block-${selection.blockId}`);
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        const x = (e.clientX - rect.left - dragOffset.x) / zoom;
+        const y = (e.clientY - rect.top - dragOffset.y) / zoom;
+
+        const updatedElements = [...block.elements];
+        updatedElements[elIndex] = { ...el, position: { x: Math.max(0, Math.round(x)), y: Math.max(0, Math.round(y)) } };
+        onUpdateBlock(selection.blockId, { elements: updatedElements });
+      } else if (isResizing) {
+        let newWidth = resizeStart.w;
+        let newHeight = resizeStart.h;
+
+        if (isResizing.includes('e')) newWidth = resizeStart.w + (e.clientX - resizeStart.x) / zoom;
+        if (isResizing.includes('s')) newHeight = resizeStart.h + (e.clientY - resizeStart.y) / zoom;
+
+        const updatedElements = [...block.elements];
+        updatedElements[elIndex] = {
+          ...el,
+          size: {
+            width: isResizing.includes('e') ? Math.max(10, Math.round(newWidth)) : el.size.width,
+            height: isResizing.includes('s') ? Math.max(10, Math.round(newHeight)) : el.size.height
+          }
+        };
+        onUpdateBlock(selection.blockId, { elements: updatedElements });
+      }
+    };
+
+    const handleMouseUp = () => {
+        setIsDraggingElement(false);
+        setIsResizing(null);
+    }
+
+    if (isDraggingElement || isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
+  }, [isDraggingElement, isResizing, dragOffset, resizeStart, selection, project.blocks, onUpdateBlock, zoom]);
+
+  const handleUpdateElement = (elId: string, partialEl: any) => {
+    if (!selection.blockId) return;
+    const block = project.blocks.find(b => b.id === selection.blockId);
+    if (!block || !block.elements) return;
+    const elIndex = block.elements.findIndex(el => el.id === elId);
+    if (elIndex === -1) return;
+    const updatedElements = [...block.elements];
+    updatedElements[elIndex] = { ...updatedElements[elIndex], ...partialEl };
+    onUpdateBlock(selection.blockId, { elements: updatedElements } as any);
+  };
+
   const fileDragDepth = useRef(0);
 
   useEffect(() => {
@@ -228,7 +374,7 @@ export default function CanvasArea({
     e.preventDefault();
     fileDragDepth.current = 0;
     setIsDraggingFile(false);
-    const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
+    const files = Array.from(e.dataTransfer?.files || []).filter((f: any) => f.type.startsWith('image/'));
     if (!files.length || !onReorderBlocks) return;
 
     const dataUrls = await Promise.all(files.map(readFileAsDataURL));
@@ -911,16 +1057,14 @@ export default function CanvasArea({
                         <div className={`absolute left-0 right-0 h-1 bg-indigo-500 z-50 pointer-events-none rounded-full ${dragOverPos === 'top' ? 'top-0' : 'bottom-0'}`} />
                       )}
 
-                      {/* Floating action bar (selected) */}
+
                       {isSelected && (
-                        <FloatingBlockActions
-                          block={block} idx={idx} total={project.blocks.length}
-                          onMove={dir => onMoveBlock(block.id, dir)}
-                          onDuplicate={() => onDuplicateBlock(block.id)}
-                          onDelete={() => { onDeleteBlock(block.id); setSelection({ blockId: null, elementId: null }); }}
-                          onClose={() => setSelection({ blockId: null, elementId: null })}
-                        />
+                        <FloatingBlockActions block={block} idx={idx} total={project.blocks.length} onMove={dir => onMoveBlock(block.id, dir)} onDuplicate={() => onDuplicateBlock(block.id)} onDelete={() => { onDeleteBlock(block.id); setSelection({ blockId: null, elementId: null }); }} onClose={() => setSelection({ blockId: null, elementId: null })} />
                       )}
+                      {(block as any).elements && (block as any).elements.map((el: any) => (
+                        <RenderCanvasElement key={el.id} element={el} isSelected={selection.elementId === el.id} setSelection={setSelection} onDoubleClick={() => {}} setIsDraggingElement={setIsDraggingElement} setDragOffset={setDragOffset} onUpdateElement={handleUpdateElement} setIsResizing={setIsResizing} setResizeStart={setResizeStart} />
+                      ))}
+
 
                       {/* Hover type label */}
                       {isHovered && !isSelected && (

@@ -6,6 +6,7 @@ import {
 import TopBar from './components/TopBar';
 import CanvasArea from './components/CanvasArea';
 import RightPropertiesPanel from './components/RightPropertiesPanel';
+import LeftSidebar from './components/LeftSidebar';
 import StatusBar from './components/StatusBar';
 import PublicGalleryModal from './components/PublicGalleryModal';
 import { 
@@ -408,6 +409,40 @@ export default function App() {
             onDuplicateBlock={handleDuplicateBlock}
             onMoveBlock={handleMoveBlock}
             onAddBlock={handleAddBlock}
+          />
+        )}
+
+
+        {!isPreviewMode && (
+          <LeftSidebar
+            onAddElement={(type: any) => {
+              let targetBlockId = selection.blockId;
+              if (!targetBlockId && project.blocks.length > 0) {
+                targetBlockId = project.blocks[project.blocks.length - 1].id;
+              }
+              if (!targetBlockId) return;
+              const blockIndex = project.blocks.findIndex(b => b.id === targetBlockId);
+              if (blockIndex === -1) return;
+              const newElement = {
+                id: `el-${Date.now()}`,
+                type,
+                parentId: targetBlockId,
+                position: { x: 50, y: 50 },
+                size: { width: 100, height: 'auto' },
+                content: { text: type === 'text' ? 'New Text' : type === 'button' ? 'Click Me' : '' },
+                styles: { color: '#000', fontSize: 16 }
+              };
+              const next = [...project.blocks];
+              next[blockIndex] = {
+                ...next[blockIndex],
+                elements: [...((next[blockIndex] as any).elements || []), newElement]
+              } as any;
+              setProject({ ...project, blocks: next });
+            }}
+            onAddBlock={(type: any) => {
+              const newBlock = createBlockByType(type, `sec_${Date.now()}`);
+              setProject({ ...project, blocks: [...project.blocks, newBlock] });
+            }}
           />
         )}
 

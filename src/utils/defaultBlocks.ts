@@ -31,6 +31,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'navbar':
       return {
         ...base,
+        elements: [],
         name: 'Navigation Bar',
         styles: { ...base.styles, paddingTop: 16, paddingBottom: 16, bgColor: '#ffffff', shadow: 'soft' },
         content: {
@@ -51,23 +52,42 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
       return {
         ...base,
         name: 'Hero Section',
-        styles: { ...base.styles, paddingTop: 96, paddingBottom: 96, bgColor: '#f8fafc', align: 'center' },
-        content: {
-          subtitle: 'Introducing v2.0',
-          title: 'Build Beautiful Landing Pages in Minutes',
-          description: 'The no-code page builder that turns your ideas into stunning, high-converting landing pages. No design skills required.',
-          primaryBtnText: 'Start Building Free',
-          primaryBtnUrl: '#',
-          secondaryBtnText: 'See Examples',
-          secondaryBtnUrl: '#',
-          primaryBtnStyle: 'filled',
-          secondaryBtnStyle: 'outline'
-        }
+        content: {},
+        elements: [
+          {
+            id: `el-${Date.now()}-1`,
+            type: 'text',
+            parentId: id,
+            position: { x: 50, y: 100 },
+            size: { width: 600, height: 'auto' },
+            content: { text: 'Build faster with Landy', tag: 'h1' },
+            styles: { fontSize: 48, fontWeight: '800', color: '#000000', textAlign: 'center' }
+          },
+          {
+            id: `el-${Date.now()}-2`,
+            type: 'text',
+            parentId: id,
+            position: { x: 50, y: 200 },
+            size: { width: 600, height: 'auto' },
+            content: { text: 'The ultimate visual editor.', tag: 'p' },
+            styles: { fontSize: 18, fontWeight: '400', color: '#4b5563', textAlign: 'center' }
+          },
+          {
+            id: `el-${Date.now()}-3`,
+            type: 'button',
+            parentId: id,
+            position: { x: 250, y: 300 },
+            size: { width: 200, height: 48 },
+            content: { text: 'Get Started' },
+            styles: { backgroundColor: '#4f46e5', color: '#ffffff', borderRadius: 8, textAlign: 'center' }
+          }
+        ]
       };
 
     case 'features_grid':
       return {
         ...base,
+        elements: [],
         name: 'Features Grid',
         styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
         content: {
@@ -88,6 +108,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'stats_block':
       return {
         ...base,
+        elements: [],
         name: 'Stats / Numbers',
         styles: { ...base.styles, paddingTop: 64, paddingBottom: 64, bgColor: '#0f172a', textColor: '#f8fafc' },
         content: {
@@ -106,6 +127,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'text_block':
       return {
         ...base,
+        elements: [],
         name: 'Text Block',
         styles: { ...base.styles, paddingTop: 40, paddingBottom: 40, align: 'left' },
         content: {
@@ -124,6 +146,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'logo_bar':
       return {
         ...base,
+        elements: [],
         name: 'Logo Bar / Trusted By',
         styles: { ...base.styles, paddingTop: 48, paddingBottom: 48, bgColor: '#f8fafc' },
         content: {
@@ -141,6 +164,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'faq_block':
       return {
         ...base,
+        elements: [],
         name: 'FAQ Section',
         styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
         content: {
@@ -159,6 +183,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'team_block':
       return {
         ...base,
+        elements: [],
         name: 'Team Section',
         styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
         content: {
@@ -176,6 +201,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'testimonials':
       return {
         ...base,
+        elements: [],
         name: 'Testimonials',
         styles: { ...base.styles, paddingTop: 80, paddingBottom: 80, bgColor: '#f8fafc' },
         content: {
@@ -193,6 +219,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'pricing_cards':
       return {
         ...base,
+        elements: [],
         name: 'Pricing Plans',
         styles: { ...base.styles, paddingTop: 80, paddingBottom: 80 },
         content: {
@@ -210,6 +237,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'contact_form':
       return {
         ...base,
+        elements: [],
         name: 'Contact Form',
         styles: { ...base.styles, paddingTop: 80, paddingBottom: 80, align: 'center' },
         content: {
@@ -228,6 +256,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'cta_block':
       return {
         ...base,
+        elements: [],
         name: 'Call to Action',
         styles: { ...base.styles, paddingTop: 80, paddingBottom: 80, bgColor: '#4f46e5', textColor: '#ffffff', align: 'center' },
         content: {
@@ -243,6 +272,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'image_block':
       return {
         ...base,
+        elements: [],
         name: 'Image Block',
         styles: { ...base.styles, paddingTop: 48, paddingBottom: 48 },
         content: {
@@ -260,6 +290,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'video_embed':
       return {
         ...base,
+        elements: [],
         name: 'Video Embed',
         styles: { ...base.styles, paddingTop: 64, paddingBottom: 64, align: 'center' },
         content: {
@@ -272,6 +303,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'divider':
       return {
         ...base,
+        elements: [],
         name: 'Divider Line',
         styles: { ...base.styles, paddingTop: 8, paddingBottom: 8 },
         content: { dividerStyle: 'solid' }
@@ -280,6 +312,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'spacer':
       return {
         ...base,
+        elements: [],
         name: 'Layout Spacer',
         styles: { ...base.styles, paddingTop: 0, paddingBottom: 0 },
         content: { spacerHeight: 48 }
@@ -288,6 +321,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
     case 'footer':
       return {
         ...base,
+        elements: [],
         name: 'Footer',
         styles: { ...base.styles, paddingTop: 48, paddingBottom: 48, bgColor: '#0f172a', textColor: '#94a3b8' },
         content: {
@@ -302,7 +336,7 @@ export const createBlockByType = (type: BlockType, id: string): Block => {
       };
 
     default:
-      return { ...base, name: 'Unknown Block' };
+      return { ...base, name: 'Unknown Block', elements: [] };
   }
 };
 
