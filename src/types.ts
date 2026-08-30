@@ -170,7 +170,48 @@ export interface BlockStyles {
   maxWidth?: 'full' | '7xl' | '5xl' | '4xl' | '3xl' | '2xl';
 }
 
+
+export type ElementType = 'text' | 'image' | 'button' | 'shape' | 'container' | 'video';
+
+export interface CanvasElement {
+  id: string;
+  type: ElementType;
+  parentId: string;
+  position: { x: number; y: number };
+  size: { width: number | 'auto' | '100%'; height: number | 'auto' };
+  locked?: boolean;
+  hidden?: boolean;
+  name?: string;
+  content: {
+    text?: string;
+    imageUrl?: string;
+    url?: string;
+    tag?: 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'span';
+    shapeType?: 'rectangle' | 'circle' | 'line';
+  };
+  styles: {
+    color?: string;
+    backgroundColor?: string;
+    fontFamily?: string;
+    fontSize?: number;
+    fontWeight?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    lineHeight?: number;
+    letterSpacing?: number;
+    opacity?: number;
+    borderWidth?: number;
+    borderColor?: string;
+    borderRadius?: number;
+    shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+    paddingTop?: number;
+    paddingRight?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+  };
+}
+
 export interface Block {
+  elements: CanvasElement[];
   id: string;
   type: BlockType;
   name: string;
@@ -180,7 +221,7 @@ export interface Block {
 
 export interface SelectionState {
   blockId: string | null;
-  elementId: 'title' | 'subtitle' | 'brandName' | 'description' | 'primaryBtn' | 'secondaryBtn' | 'image' | 'video' | 'copyright' | 'form' | null;
+  elementId: string | null;
 }
 
 export interface ProjectState {
