@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { ViewportMode, ProjectState } from '../types';
-import { 
-  Monitor, Laptop, Tablet, Smartphone, Undo2, Redo2, Eye, EyeOff, 
-  Download, Share2, Sparkles, AlertCircle, Check, Code, FileCode, X
+import {
+  Monitor, Laptop, Tablet, Smartphone, Undo2, Redo2, Eye, EyeOff,
+  Download, Share2, AlertCircle, Check, Code, FileCode, Menu, Keyboard, Globe
 } from 'lucide-react';
 
 interface TopBarProps {
@@ -18,607 +18,428 @@ interface TopBarProps {
   setIsPreviewMode: (p: boolean) => void;
   project: ProjectState;
   onPublishClick: () => void;
+  onShowShortcuts: () => void;
+  onShowGallery: () => void;
+  onShowMobilePanel: () => void;
 }
 
 export default function TopBar({
-  viewport,
-  setViewport,
-  zoom,
-  setZoom,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-  isPreviewMode,
-  setIsPreviewMode,
-  project,
-  onPublishClick
+  viewport, setViewport, zoom, setZoom,
+  canUndo, canRedo, onUndo, onRedo,
+  isPreviewMode, setIsPreviewMode,
+  project, onPublishClick,
+  onShowShortcuts, onShowGallery, onShowMobilePanel
 }: TopBarProps) {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [exportModalContent, setExportModalContent] = useState<{ title: string; code: string; type: 'html' | 'react' } | null>(null);
+  const [exportModal, setExportModal] = useState<{ title: string; code: string; type: 'html' | 'react' } | null>(null);
   const [copied, setCopied] = useState(false);
-  const exportDropdownRef = useRef<HTMLDivElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Close export dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target as Node)) {
-        setShowExportDropdown(false);
-      }
-    };
-    if (showExportDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showExportDropdown]);
-
-  // Close modal on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (exportModalContent) {
-          setExportModalContent(null);
-        } else if (showExportDropdown) {
-          setShowExportDropdown(false);
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [exportModalContent, showExportDropdown]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (exportModalContent) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [exportModalContent]);
-
-  const generateStaticHTML = (proj: ProjectState): string => {
-    const blocksHTML = proj.blocks.map(block => {
-      const radiusClass = getRadiusTailwind(block.styles.borderRadius);
-      const shadowClass = getShadowTailwind(block.styles.shadow);
-      const alignClass = `text-${block.styles.align}`;
-      const paddingClass = `pt-[${block.styles.paddingTop}px] pb-[${block.styles.paddingBottom}px]`;
-
-      const blockStyleAttr = `style="background-color: ${block.styles.bgColor}; color: ${block.styles.textColor}; font-family: ${proj.style.fontFamily};"`;
-
-      if (block.type === 'navbar') {
-        return `
-    <nav ${blockStyleAttr} class="w-full border-b border-slate-200/40 relative z-40 ${shadowClass} md:px-12 px-6 py-[${block.styles.paddingTop}px]">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <span class="font-extrabold text-xl tracking-tight" style="color: ${block.styles.brandColor};">${block.content.brandName || 'Landy'}</span>
-        <div class="hidden md:flex items-center gap-8 text-sm font-medium">
-          ${(block.content.links || []).map(l => `<a href="${l.url}" class="hover:opacity-85 transition-opacity">${l.label}</a>`).join('\n          ')}
-        </div>
-        ${block.content.primaryBtnText ? `
-        <a href="${block.content.primaryBtnUrl || '#'}" class="px-5 py-2 text-xs font-semibold ${radiusClass} transition-all" style="background-color: ${block.styles.brandColor}; color: #ffffff;">
-          ${block.content.primaryBtnText}
-        </a>` : ''}
-      </div>
-    </nav>`;
-      }
-
-      if (block.type === 'hero_section') {
-        const hasMedia = block.content.imageUrl || block.content.videoUrl;
-        return `
-    <section ${blockStyleAttr} class="relative overflow-hidden w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-7xl mx-auto grid grid-cols-1 ${hasMedia ? 'lg:grid-cols-2 gap-12' : ''} items-center ${alignClass}">
-        <div class="space-y-6">
-          ${block.content.subtitle ? `<span class="px-3 py-1 text-xs font-extrabold uppercase tracking-wide rounded-full" style="background-color: ${block.styles.brandColor}22; color: ${block.styles.brandColor};">${block.content.subtitle}</span>` : ''}
-          <h1 class="text-4xl md:text-5xl font-black tracking-tight leading-tight">${block.content.title || 'Landing Headline'}</h1>
-          <p class="text-base leading-relaxed opacity-90">${block.content.description || ''}</p>
-          <div class="pt-2 flex flex-wrap items-center gap-4 ${block.styles.align === 'center' ? 'justify-center' : block.styles.align === 'right' ? 'justify-end' : 'justify-start'}">
-            ${block.content.primaryBtnText ? `
-            <a href="${block.content.primaryBtnUrl || '#'}" class="px-6 py-3 font-semibold text-sm ${radiusClass} transition-all hover:-translate-y-0.5" style="background-color: ${block.styles.brandColor}; color: #ffffff;">
-              ${block.content.primaryBtnText}
-            </a>` : ''}
-            ${block.content.secondaryBtnText ? `
-            <a href="${block.content.secondaryBtnUrl || '#'}" class="px-6 py-3 font-semibold text-sm border hover:-translate-y-0.5 transition-all ${radiusClass}" style="border-color: ${block.styles.textColor}33;">
-              ${block.content.secondaryBtnText}
-            </a>` : ''}
-          </div>
-        </div>
-        ${block.content.imageUrl ? `
-        <div class="flex justify-center flex-1">
-          <img src="${block.content.imageUrl}" alt="${block.content.imageAlt || 'Hero visual'}" class="w-full h-auto max-h-[480px] object-cover ${radiusClass} ${shadowClass}" />
-        </div>` : ''}
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'features_grid') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-7xl mx-auto space-y-12">
-        <div class="max-w-3xl ${block.styles.align === 'center' ? 'mx-auto text-center' : block.styles.align === 'right' ? 'ml-auto text-right' : 'text-left'}">
-          ${block.content.subtitle ? `<span class="text-xs font-extrabold uppercase tracking-widest block mb-2" style="color: ${block.styles.brandColor};">${block.content.subtitle}</span>` : ''}
-          <h2 class="text-3xl font-extrabold tracking-tight">${block.content.title || 'Essential Features'}</h2>
-          ${block.content.description ? `<p class="mt-3 text-sm opacity-85 leading-relaxed">${block.content.description}</p>` : ''}
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          ${(block.content.features || []).map(feat => `
-          <div class="p-6 border rounded-xl hover:shadow-md transition-all space-y-3" style="border-color: ${block.styles.textColor}15;">
-            <div class="w-10 h-10 flex items-center justify-center rounded-lg" style="background-color: ${block.styles.brandColor}15; color: ${block.styles.brandColor}; font-weight: bold; font-family: monospace;">✦</div>
-            <h3 class="font-bold text-base">${feat.title}</h3>
-            <p class="text-xs opacity-90 leading-relaxed">${feat.description}</p>
-          </div>`).join('\n          ')}
-        </div>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'testimonials') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-7xl mx-auto space-y-12 text-center">
-        <div class="max-w-2xl mx-auto">
-          ${block.content.subtitle ? `<span class="text-xs font-bold uppercase tracking-widest block mb-1" style="color: ${block.styles.brandColor};">${block.content.subtitle}</span>` : ''}
-          <h2 class="text-3xl font-extrabold tracking-tight">${block.content.title || 'Client Success'}</h2>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          ${(block.content.testimonials || []).map(test => `
-          <div class="bg-white/40 p-8 border rounded-2xl flex flex-col justify-between text-left space-y-6 backdrop-blur-sm" style="border-color: ${block.styles.textColor}10;">
-            <p class="text-sm italic leading-relaxed">"${test.quote}"</p>
-            <div class="flex items-center gap-3">
-              <img src="${test.avatarUrl}" alt="${test.author}" class="w-10 h-10 rounded-full object-cover" />
-              <div>
-                <h4 class="text-xs font-bold">${test.author}</h4>
-                <p class="text-[10px] opacity-75">${test.role}</p>
-              </div>
-            </div>
-          </div>`).join('\n          ')}
-        </div>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'pricing_cards') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-7xl mx-auto space-y-12">
-        <div class="max-w-3xl mx-auto text-center space-y-3">
-          ${block.content.subtitle ? `<span class="text-xs font-bold uppercase tracking-widest block" style="color: ${block.styles.brandColor};">${block.content.subtitle}</span>` : ''}
-          <h2 class="text-3xl font-extrabold tracking-tight">${block.content.title || 'Simple Plans'}</h2>
-          ${block.content.description ? `<p class="text-sm opacity-80">${block.content.description}</p>` : ''}
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          ${(block.content.pricingPlans || []).map(plan => `
-          <div class="border p-8 rounded-2xl flex flex-col justify-between relative ${plan.popular ? 'ring-2 ring-offset-4' : ''}" style="border-color: ${block.styles.textColor}15;">
-            ${plan.popular ? `<span class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white rounded-full text-[10px] font-bold uppercase tracking-widest">MOST POPULAR</span>` : ''}
-            <div class="space-y-4">
-              <h3 class="font-bold text-lg">${plan.name}</h3>
-              <div class="flex items-baseline gap-1">
-                <span class="text-3xl font-extrabold">${plan.price}</span>
-                <span class="text-xs opacity-75">/${plan.period}</span>
-              </div>
-              <ul class="space-y-2.5 text-xs">
-                ${plan.features.map(f => `<li class="flex items-center gap-2">✓ <span>${f}</span></li>`).join('\n                ')}
-              </ul>
-            </div>
-            <a href="#" class="w-full mt-8 py-2.5 text-xs font-bold text-center ${radiusClass} transition-all block" style="background-color: ${plan.popular ? block.styles.brandColor : 'transparent'}; color: ${plan.popular ? '#ffffff' : block.styles.textColor}; border: 1px solid ${block.styles.textColor}22;">
-              ${plan.btnText}
-            </a>
-          </div>`).join('\n          ')}
-        </div>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'contact_form') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-xl mx-auto text-center space-y-6">
-        <div>
-          <h2 class="text-3xl font-extrabold tracking-tight">${block.content.title || 'Get in touch'}</h2>
-          <p class="text-xs opacity-80 mt-2">${block.content.description || ''}</p>
-        </div>
-        <form class="text-left space-y-4" onsubmit="event.preventDefault(); alert('Form submitted!');">
-          ${(block.content.formFields || []).map(f => `
-          <div class="space-y-1">
-            <label class="text-xs font-bold block opacity-85">${f.label}</label>
-            ${f.type === 'textarea' ? `<textarea placeholder="${f.placeholder}" class="w-full p-2.5 text-xs border rounded-lg" rows="3"></textarea>` : `<input type="${f.type}" placeholder="${f.placeholder}" class="w-full p-2.5 text-xs border rounded-lg" />`}
-          </div>`).join('\n          ')}
-          <button type="submit" class="w-full py-3 ${radiusClass} text-xs font-semibold text-white" style="background-color: ${block.styles.brandColor};">
-            ${block.content.formBtnText || 'Submit Form'}
-          </button>
-        </form>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'cta_block') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-4xl mx-auto text-center space-y-6">
-        <h2 class="text-3xl font-black tracking-tight">${block.content.title || 'Get Started Now'}</h2>
-        <p class="text-sm opacity-90 max-w-2xl mx-auto">${block.content.description || ''}</p>
-        <div class="pt-4 flex justify-center gap-4">
-          <a href="${block.content.primaryBtnUrl || '#'}" class="px-6 py-3 font-bold text-xs ${radiusClass} hover:opacity-90 shadow-md transition-all" style="background-color: ${block.styles.brandColor}; color: #ffffff;">
-            ${block.content.primaryBtnText || 'Join Free'}
-          </a>
-        </div>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'image_block') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 text-center">
-      <div class="max-w-4xl mx-auto space-y-4">
-        <img src="${block.content.imageUrl}" alt="${block.content.imageAlt || ''}" class="w-full h-auto object-cover rounded-xl ${shadowClass}" />
-        <p class="text-xs opacity-75">${block.content.description || ''}</p>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'video_embed') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 text-center">
-      <div class="max-w-4xl mx-auto space-y-4">
-        <h3 class="font-bold text-lg">${block.content.title || ''}</h3>
-        <div class="aspect-video w-full rounded-2xl overflow-hidden shadow-lg">
-          <iframe src="${block.content.videoUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
-        </div>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'stats_block') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-7xl mx-auto">
-        ${block.content.title ? `<h2 class="text-3xl font-black tracking-tight text-center mb-10">${block.content.title}</h2>` : ''}
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          ${(block.content.stats || []).map(s => `
-          <div>
-            <div class="text-4xl font-black" style="color: ${block.styles.brandColor};">${s.prefix || ''}${s.value}${s.suffix || ''}</div>
-            <div class="text-xs font-semibold uppercase tracking-wider opacity-70 mt-1">${s.label}</div>
-          </div>`).join('\n          ')}
-        </div>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'faq_block') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-2xl mx-auto space-y-4">
-        ${block.content.title ? `<h2 class="text-3xl font-black tracking-tight text-center mb-8">${block.content.title}</h2>` : ''}
-        ${(block.content.faqs || []).map((faq, i) => `
-        <details class="p-4 border rounded-xl cursor-pointer" style="border-color: ${block.styles.textColor}20;">
-          <summary class="font-bold text-sm list-none flex justify-between items-center">
-            ${faq.question} <span>▾</span>
-          </summary>
-          <p class="text-xs leading-relaxed opacity-75 mt-3">${faq.answer}</p>
-        </details>`).join('\n        ')}
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'team_block') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6">
-      <div class="max-w-7xl mx-auto">
-        ${block.content.title ? `<h2 class="text-3xl font-black tracking-tight text-center mb-10">${block.content.title}</h2>` : ''}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          ${(block.content.team || []).map(m => `
-          <div class="text-center p-6 border rounded-2xl" style="border-color: ${block.styles.textColor}10;">
-            ${m.avatarUrl ? `<img src="${m.avatarUrl}" alt="${m.name}" class="w-16 h-16 rounded-full object-cover mx-auto mb-3" />` : ''}
-            <h3 class="font-black text-sm">${m.name}</h3>
-            <p class="text-xs font-bold mt-1" style="color: ${block.styles.brandColor};">${m.role}</p>
-            <p class="text-xs opacity-70 leading-relaxed mt-2">${m.bio}</p>
-          </div>`).join('\n          ')}
-        </div>
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'logo_bar') {
-        return `
-    <section ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 text-center">
-      ${block.content.logoBarTitle ? `<p class="text-xs font-semibold uppercase tracking-widest opacity-50 mb-6">${block.content.logoBarTitle}</p>` : ''}
-      <div class="flex flex-wrap items-center justify-center gap-10 opacity-60 grayscale">
-        ${(block.content.logos || []).map(l => `<img src="${l.logoUrl}" alt="${l.name}" class="h-7 w-auto object-contain" />`).join('\n        ')}
-      </div>
-    </section>`;
-      }
-
-      if (block.type === 'divider') {
-        const borderStyle = block.content.dividerStyle === 'dashed' ? 'border-dashed' : block.content.dividerStyle === 'dotted' ? 'border-dotted' : 'border-solid';
-        return `<div class="w-full md:px-12 px-6"><hr class="border-t ${borderStyle}" style="border-color: ${block.styles.textColor}25;" /></div>`;
-      }
-
-      if (block.type === 'spacer') {
-        return `<div style="height: ${block.content.spacerHeight || 48}px;"></div>`;
-      }
-
-      if (block.type === 'footer') {
-        return `
-    <footer ${blockStyleAttr} class="w-full ${paddingClass} md:px-12 px-6 border-t" style="border-color: ${block.styles.textColor}20;">
-      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs font-medium">
-        <span class="font-black text-base" style="color: ${block.styles.brandColor};">${block.content.brandName || 'Landy'}</span>
-        <span>${block.content.copyright || ''}</span>
-        <div class="flex items-center gap-6">
-          ${(block.content.links || []).map(l => `<a href="${l.url}" class="hover:underline opacity-80">${l.label}</a>`).join('\n          ')}
-        </div>
-      </div>
-    </footer>`;
-      }
-
-      return `<!-- Unknown block: ${block.type} -->`;
-    }).join('\n');
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${proj.name}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 0; scroll-behavior: smooth; }
-    details summary::-webkit-details-marker { display: none; }
-  </style>
-</head>
-<body style="background-color: ${proj.style.background};">
-  <div class="w-full font-sans">
-    ${blocksHTML}
-  </div>
-</body>
-</html>`;
-  };
-
-  const generateReactCode = (proj: ProjectState): string => {
-    return `import React from 'react';
-// Landy Export — ${proj.name}
-// Requires: Tailwind CSS
-
-export default function RenderedLanding() {
-  return (
-    <div className="w-full min-h-screen font-sans" style={{ backgroundColor: '${proj.style.background}' }}>
-      ${proj.blocks.map(b => {
-        if (b.type === 'navbar') {
-          return `
-      {/* Navbar */}
-      <nav className="w-full relative z-40 px-6 md:px-12 py-4 shadow-sm" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="font-extrabold text-xl" style={{ color: '${b.styles.brandColor}' }}>${b.content.brandName || 'Landy'}</span>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium">
-            ${(b.content.links || []).map(l => `<a href="${l.url}" className="hover:opacity-80">${l.label}</a>`).join('\n            ')}
-          </div>
-          ${b.content.primaryBtnText ? `<a href="${b.content.primaryBtnUrl || '#'}" className="px-5 py-2 text-xs font-semibold rounded-lg text-white" style={{ backgroundColor: '${b.styles.brandColor}' }}>${b.content.primaryBtnText}</a>` : ''}
-        </div>
-      </nav>`;
-        }
-        if (b.type === 'hero_section') {
-          return `
-      {/* Hero */}
-      <section className="relative w-full px-6 md:px-12 py-20" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            ${b.content.subtitle ? `<span className="px-3 py-1 text-xs font-extrabold uppercase rounded-full" style={{ backgroundColor: '${b.styles.brandColor}22', color: '${b.styles.brandColor}' }}>${b.content.subtitle}</span>` : ''}
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">${b.content.title}</h1>
-            <p className="text-base opacity-90 leading-relaxed">${b.content.description}</p>
-            <div className="flex flex-wrap gap-4 pt-2">
-              ${b.content.primaryBtnText ? `<a href="${b.content.primaryBtnUrl || '#'}" className="px-6 py-3 font-semibold text-xs rounded-xl text-white" style={{ backgroundColor: '${b.styles.brandColor}' }}>${b.content.primaryBtnText}</a>` : ''}
-              ${b.content.secondaryBtnText ? `<a href="${b.content.secondaryBtnUrl || '#'}" className="px-6 py-3 font-semibold text-xs rounded-xl border">${b.content.secondaryBtnText}</a>` : ''}
-            </div>
-          </div>
-          ${b.content.imageUrl ? `<img src="${b.content.imageUrl}" alt="${b.content.imageAlt || 'Hero'}" className="w-full h-auto rounded-2xl shadow-lg" />` : ''}
-        </div>
-      </section>`;
-        }
-        if (b.type === 'features_grid') {
-          return `
-      {/* Features */}
-      <section className="w-full px-6 md:px-12 py-16" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-7xl mx-auto space-y-12">
-          <div className="max-w-3xl">
-            <h2 className="text-3xl font-extrabold tracking-tight">${b.content.title}</h2>
-            ${b.content.description ? `<p className="text-sm opacity-80 mt-2">${b.content.description}</p>` : ''}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            ${(b.content.features || []).map(f => `
-            <div className="p-6 border rounded-2xl space-y-3">
-              <h3 className="font-bold text-sm">${f.title}</h3>
-              <p className="text-xs opacity-80 leading-relaxed">${f.description}</p>
-            </div>`).join('\n            ')}
-          </div>
-        </div>
-      </section>`;
-        }
-        if (b.type === 'cta_block') {
-          return `
-      {/* CTA */}
-      <section className="w-full px-6 md:px-12 py-16 text-center" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-4xl mx-auto space-y-6">
-          <h2 className="text-3xl font-black tracking-tight">${b.content.title}</h2>
-          <p className="text-sm opacity-90 max-w-2xl mx-auto">${b.content.description}</p>
-          <a href="${b.content.primaryBtnUrl || '#'}" className="inline-block px-6 py-3 rounded-xl font-bold text-xs text-white" style={{ backgroundColor: '${b.styles.brandColor}' }}>${b.content.primaryBtnText || 'Get Started'}</a>
-        </div>
-      </section>`;
-        }
-        if (b.type === 'footer') {
-          return `
-      {/* Footer */}
-      <footer className="w-full px-6 md:px-12 py-8 border-t" style={{ backgroundColor: '${b.styles.bgColor}', color: '${b.styles.textColor}' }}>
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-          <span className="font-black text-base" style={{ color: '${b.styles.brandColor}' }}>${b.content.brandName}</span>
-          <span className="opacity-60">${b.content.copyright}</span>
-          <div className="flex gap-4 opacity-60">
-            ${(b.content.links || []).map(l => `<a href="${l.url}" className="hover:opacity-100">${l.label}</a>`).join('\n            ')}
-          </div>
-        </div>
-      </footer>`;
-        }
-        return `      {/* ${b.type} block */}
-      <div style={{ backgroundColor: '${b.styles.bgColor}', height: '${b.type === 'spacer' ? (b.content.spacerHeight || 48) : 2}px' }} />`;
-      }).join('\n')}
-    </div>
-  );
-}
-`;
-  };
-
-  const getRadiusTailwind = (r: string) => {
+  const getRadius = (r: string) => {
     switch (r) {
       case 'none': return 'rounded-none';
       case 'md': return 'rounded-md';
       case 'xl': return 'rounded-2xl';
       case '3xl': return 'rounded-3xl';
-      case 'full': return 'rounded-full';
       default: return 'rounded-xl';
     }
   };
 
-  const getShadowTailwind = (s: string) => {
-    switch (s) {
-      case 'none': return 'shadow-none';
-      case 'soft': return 'shadow-sm';
-      case 'heavy': return 'shadow-xl';
-      default: return 'shadow-none';
+  const generateHTML = (proj: ProjectState): string => {
+    const fontImport = proj.style.fontFamily.includes('Inter')
+      ? "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      : `https://fonts.googleapis.com/css2?family=${proj.style.fontFamily.split(',')[0].replace(/['"]/g, '').trim().replace(/ /g, '+')}:wght@400;500;600;700;800;900&display=swap`;
+
+    const blocksHTML = proj.blocks.map(block => {
+      const bg = block.styles.useGradient
+        ? `background: linear-gradient(to right, ${block.styles.gradientFrom || '#4f46e5'}, ${block.styles.gradientTo || '#7c3aed'});`
+        : `background-color: ${block.styles.bgColor};`;
+      const sectionStyle = `${bg} color: ${block.styles.textColor}; font-family: ${block.styles.fontFamily || proj.style.fontFamily};`;
+      const padStyle = `padding-top: ${block.styles.paddingTop}px; padding-bottom: ${block.styles.paddingBottom}px;`;
+      const brand = block.styles.brandColor || '#4f46e5';
+      const rClass = getRadius(block.styles.borderRadius || proj.style.radius);
+      const mwClass = block.styles.maxWidth === 'full' ? 'max-w-full' : `max-w-${block.styles.maxWidth || '7xl'}`;
+
+      if (block.type === 'navbar') {
+        return `
+  <nav style="${sectionStyle} padding: ${block.styles.paddingTop}px 3rem ${block.styles.paddingBottom}px;">
+    <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+      <span style="font-weight:900;font-size:1.25rem;color:${brand};">${block.content.brandName || 'Brand'}</span>
+      <nav style="display:flex;align-items:center;gap:1.5rem;font-size:0.75rem;font-weight:600;">
+        ${(block.content.links || []).map(l => `<a href="${l.url}" style="color:${block.styles.textColor};text-decoration:none;opacity:0.85;">${l.label}</a>`).join('\n        ')}
+      </nav>
+      ${block.content.primaryBtnText ? `<a href="${block.content.primaryBtnUrl || '#'}" style="padding:0.5rem 1.25rem;background:${brand};color:#fff;border-radius:0.5rem;font-weight:700;font-size:0.75rem;text-decoration:none;">${block.content.primaryBtnText}</a>` : ''}
+    </div>
+  </nav>`;
+      }
+
+      if (block.type === 'hero_section') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:1280px;margin:0 auto;text-align:${block.styles.align};">
+      ${block.content.subtitle ? `<span style="display:inline-block;padding:0.25rem 0.75rem;background:${brand}18;color:${brand};font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;border-radius:9999px;margin-bottom:1rem;">${block.content.subtitle}</span>` : ''}
+      <h1 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;line-height:1.1;margin:0 0 1.5rem;">${block.content.title || ''}</h1>
+      <p style="font-size:1rem;opacity:0.75;line-height:1.7;max-width:42rem;${block.styles.align === 'center' ? 'margin:0 auto 2rem;' : 'margin:0 0 2rem;'}">${block.content.description || ''}</p>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:${block.styles.align === 'center' ? 'center' : block.styles.align === 'right' ? 'flex-end' : 'flex-start'};">
+        ${block.content.primaryBtnText ? `<a href="${block.content.primaryBtnUrl || '#'}" style="padding:0.75rem 1.5rem;background:${brand};color:#fff;border-radius:0.75rem;font-weight:700;font-size:0.75rem;text-decoration:none;">${block.content.primaryBtnText}</a>` : ''}
+        ${block.content.secondaryBtnText ? `<a href="${block.content.secondaryBtnUrl || '#'}" style="padding:0.75rem 1.5rem;border:2px solid ${brand};color:${brand};border-radius:0.75rem;font-weight:700;font-size:0.75rem;text-decoration:none;">${block.content.secondaryBtnText}</a>` : ''}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'text_block') {
+        const tag = block.content.textTag || 'p';
+        const isQuote = tag === 'blockquote';
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:${block.styles.maxWidth === '2xl' ? '42rem' : block.styles.maxWidth === '4xl' ? '56rem' : '48rem'};${block.styles.align === 'center' ? 'margin:0 auto;' : ''}text-align:${block.styles.align};">
+      <${tag} style="font-size:${block.content.textFontSize || 16}px;font-weight:${block.content.textFontWeight || 400};line-height:${block.content.textLineHeight || 1.8};letter-spacing:${(block.content.textLetterSpacing || 0) / 100}em;text-decoration:${block.content.textDecoration || 'none'};text-transform:${block.content.textTransform || 'none'};color:${block.styles.textColor};${isQuote ? `border-left:4px solid ${brand};padding-left:1.5rem;font-style:italic;opacity:0.85;` : ''}margin:0;">${block.content.textContent || ''}</${tag}>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'stats_block') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:1280px;margin:0 auto;">
+      ${block.content.title ? `<h2 style="font-size:2rem;font-weight:900;text-align:center;margin-bottom:3rem;">${block.content.title}</h2>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2rem;text-align:center;">
+        ${(block.content.stats || []).map(s => `
+        <div>
+          <div style="font-size:clamp(2rem,5vw,3rem);font-weight:900;color:${brand};">${s.prefix || ''}${s.value}${s.suffix || ''}</div>
+          <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;opacity:0.6;margin-top:0.5rem;">${s.label}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'features_grid') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <div style="max-width:48rem;${block.styles.align === 'center' ? 'margin:0 auto;text-align:center;' : ''}margin-bottom:3rem;">
+        ${block.content.subtitle ? `<span style="font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:${brand};display:block;margin-bottom:0.5rem;">${block.content.subtitle}</span>` : ''}
+        <h2 style="font-size:2rem;font-weight:900;margin:0 0 0.75rem;">${block.content.title || ''}</h2>
+        ${block.content.description ? `<p style="font-size:0.875rem;opacity:0.7;line-height:1.7;margin:0;">${block.content.description}</p>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
+        ${(block.content.features || []).map(f => `
+        <div style="padding:1.5rem;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:1rem;">
+          <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:${brand}15;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;color:${brand};font-weight:900;">✦</div>
+          <h3 style="font-weight:800;font-size:0.875rem;margin:0 0 0.5rem;">${f.title}</h3>
+          <p style="font-size:0.75rem;opacity:0.8;line-height:1.6;margin:0;">${f.description}</p>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'testimonials') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:3rem;">
+        ${block.content.subtitle ? `<span style="font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:${brand};display:block;margin-bottom:0.5rem;">${block.content.subtitle}</span>` : ''}
+        <h2 style="font-size:2rem;font-weight:900;margin:0;">${block.content.title || ''}</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;">
+        ${(block.content.testimonials || []).map(t => `
+        <div style="padding:1.5rem;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:1rem;">
+          <div style="color:#fbbf24;margin-bottom:0.75rem;">★★★★★</div>
+          <p style="font-size:0.875rem;font-style:italic;line-height:1.7;margin:0 0 1rem;opacity:0.9;">"${t.quote}"</p>
+          <div style="display:flex;align-items:center;gap:0.75rem;border-top:1px solid rgba(0,0,0,0.06);padding-top:1rem;">
+            <img src="${t.avatarUrl}" alt="${t.author}" style="width:2.5rem;height:2.5rem;border-radius:50%;object-fit:cover;" />
+            <div>
+              <div style="font-weight:800;font-size:0.75rem;">${t.author}</div>
+              <div style="font-size:0.625rem;opacity:0.6;">${t.role}</div>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'pricing_cards') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:1280px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:3rem;">
+        ${block.content.subtitle ? `<span style="font-size:0.625rem;font-weight:900;text-transform:uppercase;color:${brand};display:block;margin-bottom:0.5rem;">${block.content.subtitle}</span>` : ''}
+        <h2 style="font-size:2rem;font-weight:900;margin:0;">${block.content.title || ''}</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;max-width:900px;margin:0 auto;">
+        ${(block.content.pricingPlans || []).map(p => `
+        <div style="padding:2rem;background:#fff;border:${p.popular ? `2px solid ${brand}` : '1px solid rgba(0,0,0,0.08)'};border-radius:1rem;position:relative;">
+          ${p.popular ? `<span style="position:absolute;top:-0.75rem;left:50%;transform:translateX(-50%);background:${brand};color:#fff;padding:0.25rem 1rem;border-radius:9999px;font-size:0.625rem;font-weight:900;text-transform:uppercase;">POPULAR</span>` : ''}
+          <h3 style="font-size:0.625rem;font-weight:900;text-transform:uppercase;opacity:0.5;margin:0 0 0.75rem;">${p.name}</h3>
+          <div style="font-size:2.5rem;font-weight:900;margin-bottom:1.5rem;">${p.price}<span style="font-size:0.75rem;opacity:0.5;font-weight:500;">/${p.period}</span></div>
+          <ul style="list-style:none;padding:0;margin:0 0 1.5rem;font-size:0.75rem;">
+            ${p.features.map(f => `<li style="padding:0.5rem 0;border-bottom:1px solid rgba(0,0,0,0.05);display:flex;gap:0.5rem;align-items:flex-start;"><span style="color:${brand};font-weight:900;">✓</span>${f}</li>`).join('')}
+          </ul>
+          <a href="#" style="display:block;text-align:center;padding:0.75rem;background:${p.popular ? brand : 'transparent'};color:${p.popular ? '#fff' : block.styles.textColor};border:2px solid ${brand};border-radius:0.75rem;font-weight:800;font-size:0.75rem;text-decoration:none;">${p.btnText}</a>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'faq_block') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:42rem;margin:0 auto;">
+      ${block.content.title ? `<h2 style="font-size:2rem;font-weight:900;text-align:center;margin-bottom:2rem;">${block.content.title}</h2>` : ''}
+      <div>
+        ${(block.content.faqs || []).map((faq, i) => `
+        <details style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:0.75rem;padding:1rem 1.25rem;margin-bottom:0.75rem;">
+          <summary style="font-weight:700;font-size:0.875rem;cursor:pointer;list-style:none;">${faq.question}</summary>
+          <p style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.75;line-height:1.7;">${faq.answer}</p>
+        </details>`).join('')}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'team_block') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
+    <div style="max-width:1280px;margin:0 auto;">
+      ${block.content.title ? `<h2 style="font-size:2rem;font-weight:900;text-align:center;margin-bottom:3rem;">${block.content.title}</h2>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem;">
+        ${(block.content.team || []).map(m => `
+        <div style="padding:1.5rem;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:1rem;text-align:center;">
+          <img src="${m.avatarUrl}" alt="${m.name}" style="width:4rem;height:4rem;border-radius:50%;object-fit:cover;margin:0 auto 1rem;" />
+          <h3 style="font-weight:900;font-size:0.875rem;margin:0 0 0.25rem;">${m.name}</h3>
+          <div style="font-size:0.75rem;font-weight:700;color:${brand};margin-bottom:0.75rem;">${m.role}</div>
+          <p style="font-size:0.75rem;opacity:0.7;line-height:1.6;margin:0;">${m.bio}</p>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'logo_bar') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
+    ${block.content.logoBarTitle ? `<p style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.45;margin-bottom:2rem;">${block.content.logoBarTitle}</p>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:2rem 3rem;align-items:center;justify-content:center;opacity:0.5;filter:grayscale(100%);">
+      ${(block.content.logos || []).map(l => `<img src="${l.logoUrl}" alt="${l.name}" style="height:1.75rem;width:auto;object-fit:contain;" />`).join('\n      ')}
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'contact_form') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
+    <div style="max-width:32rem;margin:0 auto;">
+      <h2 style="font-size:2rem;font-weight:900;margin-bottom:0.75rem;">${block.content.title || ''}</h2>
+      <p style="font-size:0.875rem;opacity:0.7;margin-bottom:2rem;">${block.content.description || ''}</p>
+      <form style="background:#fff;padding:2rem;border-radius:1rem;border:1px solid rgba(0,0,0,0.06);text-align:left;" onsubmit="event.preventDefault();alert('Message sent!');">
+        ${(block.content.formFields || []).map(f => `
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;opacity:0.5;margin-bottom:0.4rem;">${f.label}</label>
+          ${f.type === 'textarea' ? `<textarea placeholder="${f.placeholder}" rows="3" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #e2e8f0;border-radius:0.625rem;font-size:0.75rem;font-family:inherit;resize:vertical;box-sizing:border-box;"></textarea>` : `<input type="${f.type}" placeholder="${f.placeholder}" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #e2e8f0;border-radius:0.625rem;font-size:0.75rem;font-family:inherit;box-sizing:border-box;" />`}
+        </div>`).join('')}
+        <button type="submit" style="width:100%;padding:0.875rem;background:${brand};color:#fff;border:none;border-radius:0.75rem;font-weight:800;font-size:0.75rem;cursor:pointer;margin-top:0.5rem;">${block.content.formBtnText || 'Send Message'}</button>
+      </form>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'cta_block') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
+    <div style="max-width:56rem;margin:0 auto;">
+      <h2 style="font-size:clamp(1.75rem,4vw,3rem);font-weight:900;margin-bottom:1rem;">${block.content.title || ''}</h2>
+      <p style="font-size:1rem;opacity:0.9;max-width:42rem;margin:0 auto 2rem;line-height:1.7;">${block.content.description || ''}</p>
+      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+        ${block.content.primaryBtnText ? `<a href="${block.content.primaryBtnUrl || '#'}" style="padding:0.875rem 1.75rem;background:#fff;color:${block.styles.bgColor};border-radius:0.75rem;font-weight:800;font-size:0.875rem;text-decoration:none;">${block.content.primaryBtnText}</a>` : ''}
+        ${block.content.secondaryBtnText ? `<a href="${block.content.secondaryBtnUrl || '#'}" style="padding:0.875rem 1.75rem;border:2px solid rgba(255,255,255,0.35);color:inherit;border-radius:0.75rem;font-weight:700;font-size:0.875rem;text-decoration:none;">${block.content.secondaryBtnText}</a>` : ''}
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'image_block') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
+    <div style="max-width:56rem;margin:0 auto;">
+      ${block.content.imageUrl ? `<img src="${block.content.imageUrl}" alt="${block.content.imageAlt || ''}" style="width:100%;height:auto;max-height:460px;object-fit:cover;border-radius:1rem;" />` : ''}
+      ${block.content.description ? `<p style="font-size:0.75rem;opacity:0.6;font-style:italic;margin-top:0.75rem;">${block.content.description}</p>` : ''}
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'video_embed') {
+        return `
+  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
+    <div style="max-width:56rem;margin:0 auto;">
+      ${block.content.title ? `<h3 style="font-weight:900;font-size:1.25rem;margin-bottom:1rem;">${block.content.title}</h3>` : ''}
+      <div style="position:relative;padding-bottom:56.25%;border-radius:1rem;overflow:hidden;">
+        <iframe src="${block.content.videoUrl || ''}" style="position:absolute;inset:0;width:100%;height:100%;border:none;" allowfullscreen></iframe>
+      </div>
+    </div>
+  </section>`;
+      }
+
+      if (block.type === 'divider') {
+        return `<div style="${sectionStyle} padding:0.5rem 3rem;"><hr style="border:none;border-top:1px ${block.content.dividerStyle || 'solid'} ${block.styles.textColor}25;" /></div>`;
+      }
+
+      if (block.type === 'spacer') {
+        return `<div style="background:${block.styles.bgColor};height:${block.content.spacerHeight || 48}px;"></div>`;
+      }
+
+      if (block.type === 'footer') {
+        return `
+  <footer style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;border-top:1px solid rgba(255,255,255,0.08);">
+    <div style="max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
+      <span style="font-weight:900;font-size:1rem;color:${brand};">${block.content.brandName || 'Brand'}</span>
+      <span style="font-size:0.75rem;opacity:0.5;">${block.content.copyright || ''}</span>
+      <div style="display:flex;gap:1.5rem;">
+        ${(block.content.links || []).map(l => `<a href="${l.url}" style="color:inherit;font-size:0.75rem;opacity:0.6;text-decoration:none;">${l.label}</a>`).join('\n        ')}
+      </div>
+    </div>
+  </footer>`;
+      }
+
+      return `<!-- ${block.type} -->`;
+    }).join('\n');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${proj.name}</title>
+  <link href="${fontImport}" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; padding: 0; font-family: ${proj.style.fontFamily}; background: ${proj.style.background}; }
+    img { max-width: 100%; display: block; }
+    @media (max-width: 768px) {
+      nav div { flex-wrap: wrap; }
+      section { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+      footer { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
     }
+  </style>
+</head>
+<body>
+${blocksHTML}
+</body>
+</html>`;
   };
 
-  const triggerExport = (format: 'html' | 'react') => {
-    const code = format === 'html' ? generateStaticHTML(project) : generateReactCode(project);
-    setExportModalContent({
-      title: format === 'html' ? 'Export HTML Template' : 'Export React Component',
-      code,
-      type: format
-    });
+  const triggerExport = (fmt: 'html' | 'react') => {
+    const code = fmt === 'html' ? generateHTML(project) : `// React export\n// Copy the JSX from your Landy project\nexport default function LandingPage() {\n  return (\n    <div>\n      {/* ${project.blocks.length} blocks — use Landy HTML export for full code */}\n    </div>\n  );\n}`;
+    setExportModal({ title: fmt === 'html' ? 'HTML Export' : 'React Export', code, type: fmt });
     setShowExportDropdown(false);
   };
 
-  const handleCopyCode = () => {
-    if (exportModalContent) {
-      navigator.clipboard.writeText(exportModalContent.code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }
+  const handleCopy = () => {
+    if (exportModal) { navigator.clipboard.writeText(exportModal.code); setCopied(true); setTimeout(() => setCopied(false), 1500); }
   };
 
-  const handleDownloadFile = () => {
-    if (exportModalContent) {
-      const element = document.createElement('a');
-      const file = new Blob([exportModalContent.code], { type: 'text/plain' });
-      element.href = URL.createObjectURL(file);
-      element.download = exportModalContent.type === 'html' ? 'landy-landing.html' : 'RenderedLanding.tsx';
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    }
+  const handleDownload = () => {
+    if (!exportModal) return;
+    const a = document.createElement('a');
+    const blob = new Blob([exportModal.code], { type: 'text/plain' });
+    a.href = URL.createObjectURL(blob);
+    a.download = exportModal.type === 'html' ? 'landing.html' : 'LandingPage.tsx';
+    a.click();
   };
-
-  const closeModal = () => setExportModalContent(null);
 
   return (
-    <header className="h-[56px] min-h-[56px] border-b border-slate-200 bg-white flex items-center justify-between px-4 select-none relative z-50 animate-fade-in">
-      
-      {/* Brand */}
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-white text-base tracking-tight">
-          L
-        </div>
-        <div>
-          <h1 className="text-sm font-extrabold tracking-tight text-slate-800">Landy</h1>
-          <p className="text-[10px] text-slate-400 font-medium tracking-wide">No-Code Builder</p>
+    <header className="h-14 min-h-[3.5rem] border-b border-slate-200 bg-white flex items-center justify-between px-3 md:px-4 select-none relative z-50">
+
+      {/* Logo */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Mobile panel toggle */}
+        {!isPreviewMode && (
+          <button onClick={onShowMobilePanel} className="md:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors mr-1">
+            <Menu className="w-4 h-4 text-slate-600" />
+          </button>
+        )}
+        <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center font-black text-white text-sm shrink-0">L</div>
+        <div className="hidden sm:block">
+          <h1 className="text-sm font-black tracking-tight text-slate-800 leading-none">Landy</h1>
+          <p className="text-[9px] text-slate-400 font-medium leading-none mt-0.5">No-Code Builder</p>
         </div>
       </div>
 
-      {/* Viewport & undo/redo */}
+      {/* Center controls — hide on small screens */}
       {!isPreviewMode && (
-        <div className="hidden md:flex items-center border border-slate-200 bg-slate-50 rounded-xl p-1 gap-1">
-          <button
-            onClick={onUndo}
-            disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
-            className={`p-1.5 rounded-lg transition-colors ${canUndo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}
-          >
-            <Undo2 className="w-4 h-4" />
+        <div className="hidden md:flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 gap-0.5">
+          {/* Undo/Redo */}
+          <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)"
+            className={`p-1.5 rounded-lg transition-colors ${canUndo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}>
+            <Undo2 className="w-3.5 h-3.5" />
           </button>
-          <button
-            onClick={onRedo}
-            disabled={!canRedo}
-            title="Redo (Ctrl+Shift+Z)"
-            className={`p-1.5 rounded-lg transition-colors ${canRedo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}
-          >
-            <Redo2 className="w-4 h-4" />
+          <button onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
+            className={`p-1.5 rounded-lg transition-colors ${canRedo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}>
+            <Redo2 className="w-3.5 h-3.5" />
           </button>
 
           <div className="w-px h-4 bg-slate-200 mx-1" />
 
-          {([
-            { key: 'desktop', icon: Monitor, label: 'Desk' },
-            { key: 'laptop', icon: Laptop, label: 'Laptop' },
-            { key: 'tablet', icon: Tablet, label: 'Tablet' },
-            { key: 'mobile', icon: Smartphone, label: 'Mobile' },
-          ] as const).map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              onClick={() => setViewport(key)}
-              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${viewport === key ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <Icon className="w-4 h-4" /> {label}
+          {/* Viewport selectors */}
+          {([['desktop', Monitor, 'Desk'], ['laptop', Laptop, 'Laptop'], ['tablet', Tablet, 'Tablet'], ['mobile', Smartphone, 'Mobile']] as const).map(([vp, Icon, label]) => (
+            <button key={vp} onClick={() => setViewport(vp as ViewportMode)}
+              className={`px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${viewport === vp ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              <Icon className="w-3.5 h-3.5" /><span className="hidden lg:inline">{label}</span>
             </button>
           ))}
         </div>
       )}
 
-      {/* Right actions */}
-      <div className="flex items-center gap-2">
-        
-        {/* Zoom */}
+      {/* Right controls */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {/* Zoom — desktop only */}
         {!isPreviewMode && (
-          <div className="flex items-center border border-slate-200 bg-slate-50 px-2 py-1 rounded-xl gap-2 text-xs font-bold text-slate-500 mr-2">
-            <button onClick={() => setZoom(Math.max(40, zoom - 10))} className="hover:text-slate-800 disabled:opacity-40 w-4 text-center" disabled={zoom <= 50}>−</button>
-            <span className="w-8 text-center tabular-nums">{zoom}%</span>
-            <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="hover:text-slate-800 disabled:opacity-40 w-4 text-center" disabled={zoom >= 110}>+</button>
+          <div className="hidden lg:flex items-center bg-slate-50 border border-slate-200 px-2 py-1 rounded-xl gap-1.5 text-xs font-bold text-slate-500">
+            <button onClick={() => setZoom(Math.max(40, zoom - 10))} disabled={zoom <= 40} className="hover:text-slate-800 disabled:opacity-30 w-4 text-center">−</button>
+            <span className="w-7 text-center font-mono">{zoom}%</span>
+            <button onClick={() => setZoom(Math.min(130, zoom + 10))} disabled={zoom >= 130} className="hover:text-slate-800 disabled:opacity-30 w-4 text-center">+</button>
           </div>
         )}
 
+        {/* Shortcuts button — desktop */}
+        {!isPreviewMode && (
+          <button onClick={onShowShortcuts} title="Keyboard shortcuts" className="hidden md:flex p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-xl transition-colors">
+            <Keyboard className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Gallery — desktop */}
+        {!isPreviewMode && (
+          <button onClick={onShowGallery} className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors text-xs font-bold">
+            <Globe className="w-3.5 h-3.5 text-blue-500" /><span className="hidden lg:inline">Gallery</span>
+          </button>
+        )}
+
         {/* Preview toggle */}
-        <button
-          onClick={() => setIsPreviewMode(!isPreviewMode)}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-            isPreviewMode
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
-              : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          {isPreviewMode ? <><EyeOff className="w-4 h-4" /> Build Canvas</> : <><Eye className="w-4 h-4" /> Live Preview</>}
+        <button onClick={() => setIsPreviewMode(!isPreviewMode)}
+          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${isPreviewMode ? 'bg-indigo-600 text-white shadow-md' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          {isPreviewMode ? <><EyeOff className="w-3.5 h-3.5" /><span className="hidden sm:inline">Edit</span></> : <><Eye className="w-3.5 h-3.5" /><span className="hidden sm:inline">Preview</span></>}
         </button>
 
-        {/* Export dropdown */}
+        {/* Export */}
         {!isPreviewMode && (
-          <div className="relative" ref={exportDropdownRef}>
-            <button
-              onClick={() => setShowExportDropdown(v => !v)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all ${showExportDropdown ? 'bg-slate-700 text-white' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
-            >
-              <Download className="w-4 h-4" /> Export
+          <div className="relative">
+            <button onClick={() => setShowExportDropdown(!showExportDropdown)}
+              className="px-2.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-all">
+              <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
             </button>
-
             {showExportDropdown && (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200 p-2 w-56 shadow-xl z-50">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-3 py-1.5 mb-1">Export Format</span>
-                <button
-                  onClick={() => triggerExport('html')}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all font-semibold"
-                >
-                  <Code className="w-4 h-4 text-emerald-500" /> HTML + Tailwind CSS
+              <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200 p-2 w-52 shadow-xl z-50">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block px-2 py-1 mb-1">Export Format</span>
+                <button onClick={() => triggerExport('html')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold">
+                  <Code className="w-4 h-4 text-emerald-500" /> HTML + CSS File
                 </button>
-                <button
-                  onClick={() => triggerExport('react')}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all font-semibold"
-                >
-                  <FileCode className="w-4 h-4 text-indigo-500" /> React TypeScript
+                <button onClick={() => triggerExport('react')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold">
+                  <FileCode className="w-4 h-4 text-indigo-500" /> React Component
                 </button>
               </div>
             )}
@@ -627,82 +448,40 @@ export default function RenderedLanding() {
 
         {/* Publish */}
         {!isPreviewMode && (
-          <button
-            onClick={onPublishClick}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/10 transition-all hover:-translate-y-px"
-          >
-            <Share2 className="w-4 h-4" /> Publish
+          <button onClick={onPublishClick}
+            className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-all hover:-translate-y-px">
+            <Share2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Publish</span>
           </button>
         )}
       </div>
 
-      {/* Export Modal — click backdrop or Escape to close */}
-      {exportModalContent && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
-          role="dialog"
-          aria-modal="true"
-          aria-label={exportModalContent.title}
-        >
-          <div
-            ref={modalRef}
-            className="bg-slate-900 text-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-800 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div className="px-5 py-4 bg-slate-950 flex justify-between items-center border-b border-slate-800 shrink-0">
+      {/* Export modal */}
+      {exportModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 text-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-800 overflow-hidden">
+            <div className="px-5 py-4 bg-slate-950 flex justify-between items-center border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Code className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-sm tracking-tight">{exportModalContent.title}</h3>
-                <span className="text-[9px] bg-slate-800 text-slate-400 font-mono px-2 py-0.5 rounded-full">
-                  {exportModalContent.type === 'html' ? '.html' : '.tsx'}
+                <h3 className="font-bold text-sm">{exportModal.title}</h3>
+                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">
+                  {exportModal.code.length.toLocaleString()} chars
                 </span>
               </div>
-              <button
-                onClick={closeModal}
-                title="Close (Esc)"
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors group"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={() => setExportModal(null)} className="text-xs px-2.5 py-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Close</button>
             </div>
-
-            {/* Code area */}
-            <div className="flex-1 overflow-y-auto p-5 bg-[#0a0f1d] font-mono text-[11px] leading-relaxed text-slate-300 min-h-0">
-              <pre className="whitespace-pre-wrap selection:bg-indigo-500/35 overflow-x-auto">{exportModalContent.code}</pre>
+            <div className="flex-1 overflow-y-auto p-4 bg-[#080d1a] font-mono text-[11px] leading-relaxed text-slate-300">
+              <pre className="whitespace-pre-wrap break-words">{exportModal.code}</pre>
             </div>
-
-            {/* Modal footer */}
-            <div className="px-5 py-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center shrink-0 gap-4">
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 min-w-0">
+            <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
                 <AlertCircle className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                <span className="truncate">
-                  {exportModalContent.type === 'html'
-                    ? 'Includes Tailwind CDN — open directly in any browser.'
-                    : 'Import into any React project with Tailwind CSS.'}
-                </span>
+                {exportModal.type === 'html' ? 'Production-ready HTML with inline styles. Works anywhere.' : 'Copy into your React project. Requires Tailwind CSS.'}
               </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={closeModal}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={handleCopyCode}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-                  }`}
-                >
+              <div className="flex items-center gap-2">
+                <button onClick={handleCopy} className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'}`}>
                   {copied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : 'Copy Code'}
                 </button>
-                <button
-                  onClick={handleDownloadFile}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
-                >
+                <button onClick={handleDownload} className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all">
                   <Download className="w-3.5 h-3.5" /> Download
                 </button>
               </div>
