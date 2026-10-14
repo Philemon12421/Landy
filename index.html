@@ -1,13 +1,105 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Landy</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Landy — No-code landing page builder. Build stunning, high-converting landing pages visually." />
+  <meta name="theme-color" content="#4f46e5" />
 
+  <!-- Preconnect for fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Primary font loaded early to avoid FOUT -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
+
+  <title>Landy — No-Code Landing Page Builder</title>
+
+  <!-- Favicon (inline SVG as data URI) -->
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234f46e5'/><text x='50%25' y='56%25' font-family='Inter,system-ui,sans-serif' font-size='20' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle'>L</text></svg>"
+  />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Landy — No-Code Landing Page Builder" />
+  <meta property="og:description" content="Build stunning landing pages visually. Export clean HTML or React. No design skills needed." />
+  <meta property="og:type" content="website" />
+
+  <!-- Prevent flash of unstyled content -->
+  <style>
+    html, body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; }
+    #root { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    /* Loading splash shown before React hydrates */
+    #loading-splash {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #ffffff;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+      transition: opacity 0.3s ease;
+    }
+    #loading-splash.hidden { opacity: 0; pointer-events: none; }
+    .splash-logo {
+      width: 52px; height: 52px;
+      background: #4f46e5; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', sans-serif; font-weight: 900; font-size: 28px; color: white;
+      box-shadow: 0 8px 24px rgba(79,70,229,0.35);
+    }
+    .splash-title {
+      font-weight: 900; font-size: 1.5rem; color: #0f172a; letter-spacing: -0.03em;
+    }
+    .splash-sub {
+      font-size: 0.75rem; color: #94a3b8; font-weight: 500;
+    }
+    .splash-bar {
+      width: 140px; height: 3px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 0.5rem;
+    }
+    .splash-progress {
+      height: 100%; background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      border-radius: 99px;
+      animation: splashLoad 0.9s ease-out forwards;
+    }
+    @keyframes splashLoad {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading splash (hidden by JS once React is ready) -->
+  <div id="loading-splash" aria-hidden="true">
+    <div class="splash-logo">L</div>
+    <div>
+      <div class="splash-title">Landy</div>
+      <div class="splash-sub">No-Code Builder</div>
+    </div>
+    <div class="splash-bar"><div class="splash-progress"></div></div>
+  </div>
+
+  <!-- React root -->
+  <div id="root"></div>
+
+  <!-- Hide splash when React is ready -->
+  <script>
+    window.__LANDY_START__ = Date.now();
+    document.addEventListener('DOMContentLoaded', function() {
+      // Give React a moment to paint, then fade out splash
+      setTimeout(function() {
+        var splash = document.getElementById('loading-splash');
+        if (splash) {
+          splash.classList.add('hidden');
+          setTimeout(function() { splash.remove(); }, 350);
+        }
+      }, 400);
+    });
+  </script>
+
+  <!-- Vite entry point -->
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
