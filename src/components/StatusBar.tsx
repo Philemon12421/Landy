@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProjectState } from '../types';
-import { HardDrive, CheckCircle2, Loader2, Cpu, Database, Activity, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Loader2, Cpu, Database, Circle } from 'lucide-react';
 
 interface StatusBarProps {
   project: ProjectState;
@@ -9,101 +9,79 @@ interface StatusBarProps {
 }
 
 export default function StatusBar({ project, onRenameProject, isSaving }: StatusBarProps) {
-  const [nodeCount, setNodeCount] = useState(0);
-  const [fileSize, setFileSize] = useState('0.0 KB');
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(project.name);
-  const [fpsDisplay] = useState('60');
+  const [fileSize, setFileSize] = useState('0 KB');
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(project.name);
+
+  useEffect(() => { setDraft(project.name); }, [project.name]);
 
   useEffect(() => {
-    setDraftName(project.name);
-  }, [project.name]);
-
-  useEffect(() => {
-    const count = project.blocks.length * 14 + 10;
-    setNodeCount(count);
     const bytes = JSON.stringify(project).length;
-    const kb = bytes / 1024;
-    setFileSize(kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(2)} MB`);
+    setFileSize(bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes/1024).toFixed(1)} KB` : `${(bytes/1048576).toFixed(2)} MB`);
   }, [project]);
 
-  const handleNameCommit = () => {
-    const trimmed = draftName.trim();
-    if (trimmed) onRenameProject(trimmed);
-    else setDraftName(project.name);
-    setIsEditingName(false);
+  const commit = () => {
+    const t = draft.trim();
+    if (t) onRenameProject(t); else setDraft(project.name);
+    setIsEditing(false);
   };
 
   return (
-    <div className="h-9 min-h-[2.25rem] bg-slate-900 border-t border-slate-800 text-slate-400 flex items-center justify-between px-3 md:px-4 text-[11px] font-sans select-none z-50 relative shrink-0">
+    <div className="shrink-0 flex items-center justify-between px-3 select-none"
+      style={{ height: 28, background: '#1a1a1a', borderTop: '1px solid #2a2a2a', fontSize: 11, color: '#666' }}>
 
-      {/* Left — project name */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest hidden sm:block shrink-0">Project</span>
-        {isEditingName ? (
+      {/* Left — save status + project name */}
+      <div className="flex items-center gap-3">
+        {/* Save indicator */}
+        <div className="flex items-center gap-1.5">
+          {isSaving
+            ? <Loader2 size={10} style={{ color: '#18a0fb', animation: 'spin 0.8s linear infinite' }} />
+            : <Circle size={8} style={{ color: '#22c55e', fill: '#22c55e' }} />
+          }
+          <span style={{ fontSize: 10, color: isSaving ? '#18a0fb' : '#555' }}>
+            {isSaving ? 'Saving…' : 'Saved'}
+          </span>
+        </div>
+
+        <span style={{ width: 1, height: 12, background: '#2a2a2a', display: 'inline-block' }} />
+
+        {/* Editable project name */}
+        {isEditing ? (
           <input
-            autoFocus
-            value={draftName}
-            maxLength={48}
-            onChange={e => setDraftName(e.target.value)}
-            onBlur={handleNameCommit}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handleNameCommit();
-              if (e.key === 'Escape') { setDraftName(project.name); setIsEditingName(false); }
-            }}
-            className="bg-slate-800 border border-slate-700 focus:border-indigo-500 focus:outline-none px-2 py-0.5 rounded-md font-semibold text-slate-200 text-xs w-40 transition-all"
+            autoFocus value={draft} maxLength={48}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(project.name); setIsEditing(false); } }}
+            style={{ background: '#2a2a2a', border: '1px solid #18a0fb', borderRadius: 3, color: '#e5e5e5', fontSize: 11, padding: '1px 6px', outline: 'none', width: 160 }}
           />
         ) : (
-          <button
-            onClick={() => setIsEditingName(true)}
-            title="Click to rename"
-            className="font-semibold text-slate-300 hover:text-white text-xs truncate max-w-[120px] sm:max-w-[200px] hover:bg-slate-800 px-2 py-0.5 rounded-md transition-colors text-left"
-          >
+          <button onClick={() => setIsEditing(true)} title="Click to rename"
+            style={{ background: 'none', border: 'none', cursor: 'text', color: '#888', fontSize: 11, padding: '0 4px', borderRadius: 3 }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.color = '#ccc'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888'; }}>
             {project.name || 'Untitled'}
           </button>
         )}
       </div>
 
-      {/* Center — save status */}
-      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/60 border border-slate-700/50">
-        {isSaving ? (
-          <>
-            <Loader2 className="w-3 h-3 text-indigo-400 animate-spin shrink-0" />
-            <span className="text-[10px] text-slate-400 hidden sm:block">Saving…</span>
-          </>
-        ) : (
-          <>
-            <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-            <span className="text-[10px] text-slate-400 hidden sm:block">Saved locally</span>
-          </>
-        )}
-      </div>
-
       {/* Right — stats */}
       <div className="hidden md:flex items-center gap-4">
-        <div className="flex items-center gap-1.5 text-slate-500">
-          <Database className="w-3 h-3 text-slate-600" />
-          <span className="text-[10px]">
-            <span className="text-slate-400 font-semibold">{fileSize}</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 text-slate-500">
-          <Cpu className="w-3 h-3 text-slate-600" />
-          <span className="text-[10px]">
-            <span className="text-slate-400 font-semibold">{project.blocks.length}</span>
-            <span className="text-slate-600 ml-1">blocks</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span className="text-[10px] text-slate-500">
-            <span className="text-emerald-400 font-bold">{fpsDisplay}</span>
-            <span className="text-slate-600 ml-1">fps</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-1 text-[10px] text-slate-600 border-l border-slate-800 pl-4">
-          <span className="capitalize">{project.style.theme.replace('_', ' ')}</span>
-        </div>
+        <span style={{ color: '#444', fontSize: 10 }}>
+          {project.style.theme.replace(/_/g, ' ')}
+        </span>
+        <span style={{ width: 1, height: 10, background: '#2a2a2a', display: 'inline-block' }} />
+        <span style={{ fontSize: 10 }}>
+          <span style={{ color: '#555' }}>blocks </span>
+          <span style={{ color: '#888', fontWeight: 600 }}>{project.blocks.length}</span>
+        </span>
+        <span style={{ fontSize: 10 }}>
+          <span style={{ color: '#555' }}>size </span>
+          <span style={{ color: '#888', fontWeight: 600 }}>{fileSize}</span>
+        </span>
+        <span style={{ fontSize: 10 }}>
+          <span style={{ color: '#22c55e', fontWeight: 700 }}>● </span>
+          <span style={{ color: '#555' }}>60 fps</span>
+        </span>
       </div>
     </div>
   );
