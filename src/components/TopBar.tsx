@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ViewportMode, ProjectState } from '../types';
 import {
-  Monitor, Laptop, Tablet, Smartphone, Undo2, Redo2, Eye, EyeOff,
-  Download, Share2, AlertCircle, Check, Code, FileCode, Menu, Keyboard, Globe
+  Monitor, Tablet, Smartphone, Undo2, Redo2, Eye, EyeOff,
+  Download, Share2, AlertCircle, Check, Code, FileCode,
+  ZoomIn, ZoomOut, Menu, ChevronDown, Laptop, Globe, Keyboard,
+  Play, MousePointer2, Hand, Frame, Component
 } from 'lucide-react';
 
 interface TopBarProps {
@@ -30,300 +32,215 @@ export default function TopBar({
   project, onPublishClick,
   onShowShortcuts, onShowGallery, onShowMobilePanel
 }: TopBarProps) {
-  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportModal, setExportModal] = useState<{ title: string; code: string; type: 'html' | 'react' } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const getRadius = (r: string) => {
-    switch (r) {
-      case 'none': return 'rounded-none';
-      case 'md': return 'rounded-md';
-      case 'xl': return 'rounded-2xl';
-      case '3xl': return 'rounded-3xl';
-      default: return 'rounded-xl';
-    }
-  };
-
+  /* ── HTML export generator ─────────────────────────────── */
   const generateHTML = (proj: ProjectState): string => {
-    const fontImport = proj.style.fontFamily.includes('Inter')
-      ? "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-      : `https://fonts.googleapis.com/css2?family=${proj.style.fontFamily.split(',')[0].replace(/['"]/g, '').trim().replace(/ /g, '+')}:wght@400;500;600;700;800;900&display=swap`;
+    const fontName = proj.style.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+    const fontUrl = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@400;500;600;700;800;900&display=swap`;
 
     const blocksHTML = proj.blocks.map(block => {
       const bg = block.styles.useGradient
-        ? `background: linear-gradient(to right, ${block.styles.gradientFrom || '#4f46e5'}, ${block.styles.gradientTo || '#7c3aed'});`
-        : `background-color: ${block.styles.bgColor};`;
-      const sectionStyle = `${bg} color: ${block.styles.textColor}; font-family: ${block.styles.fontFamily || proj.style.fontFamily};`;
-      const padStyle = `padding-top: ${block.styles.paddingTop}px; padding-bottom: ${block.styles.paddingBottom}px;`;
+        ? `background:linear-gradient(to right,${block.styles.gradientFrom||'#4f46e5'},${block.styles.gradientTo||'#7c3aed'});`
+        : `background-color:${block.styles.bgColor};`;
+      const style = `${bg}color:${block.styles.textColor};font-family:${block.styles.fontFamily||proj.style.fontFamily};`;
+      const pad = `padding-top:${block.styles.paddingTop}px;padding-bottom:${block.styles.paddingBottom}px;padding-left:clamp(1rem,5vw,4rem);padding-right:clamp(1rem,5vw,4rem);`;
       const brand = block.styles.brandColor || '#4f46e5';
-      const rClass = getRadius(block.styles.borderRadius || proj.style.radius);
-      const mwClass = block.styles.maxWidth === 'full' ? 'max-w-full' : `max-w-${block.styles.maxWidth || '7xl'}`;
+      const rr = (r: string) => ({ none:'0',md:'8px',xl:'16px','3xl':'24px',full:'9999px' }[r] || '12px');
+      const rad = rr(block.styles.borderRadius || '');
 
-      if (block.type === 'navbar') {
-        return `
-  <nav style="${sectionStyle} padding: ${block.styles.paddingTop}px 3rem ${block.styles.paddingBottom}px;">
-    <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-      <span style="font-weight:900;font-size:1.25rem;color:${brand};">${block.content.brandName || 'Brand'}</span>
-      <nav style="display:flex;align-items:center;gap:1.5rem;font-size:0.75rem;font-weight:600;">
-        ${(block.content.links || []).map(l => `<a href="${l.url}" style="color:${block.styles.textColor};text-decoration:none;opacity:0.85;">${l.label}</a>`).join('\n        ')}
-      </nav>
-      ${block.content.primaryBtnText ? `<a href="${block.content.primaryBtnUrl || '#'}" style="padding:0.5rem 1.25rem;background:${brand};color:#fff;border-radius:0.5rem;font-weight:700;font-size:0.75rem;text-decoration:none;">${block.content.primaryBtnText}</a>` : ''}
-    </div>
-  </nav>`;
-      }
+      if (block.type === 'navbar') return `
+<nav style="${style}${pad}position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);">
+  <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <span style="font-weight:900;font-size:1.25rem;color:${brand};">${block.content.brandName||'Brand'}</span>
+    <nav style="display:flex;align-items:center;gap:2rem;font-size:0.8125rem;font-weight:500;">
+      ${(block.content.links||[]).map(l=>`<a href="${l.url}" style="color:${block.styles.textColor};text-decoration:none;opacity:.8;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8">${l.label}</a>`).join('')}
+    </nav>
+    ${block.content.primaryBtnText?`<a href="${block.content.primaryBtnUrl||'#'}" style="padding:.5rem 1.25rem;background:${brand};color:#fff;border-radius:${rad};font-weight:700;font-size:.8125rem;text-decoration:none;transition:opacity .15s;" onmouseover="this.style.opacity=.85" onmouseout="this.style.opacity=1">${block.content.primaryBtnText}</a>`:''}
+  </div>
+</nav>`;
 
-      if (block.type === 'hero_section') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:1280px;margin:0 auto;text-align:${block.styles.align};">
-      ${block.content.subtitle ? `<span style="display:inline-block;padding:0.25rem 0.75rem;background:${brand}18;color:${brand};font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;border-radius:9999px;margin-bottom:1rem;">${block.content.subtitle}</span>` : ''}
-      <h1 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;line-height:1.1;margin:0 0 1.5rem;">${block.content.title || ''}</h1>
-      <p style="font-size:1rem;opacity:0.75;line-height:1.7;max-width:42rem;${block.styles.align === 'center' ? 'margin:0 auto 2rem;' : 'margin:0 0 2rem;'}">${block.content.description || ''}</p>
-      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:${block.styles.align === 'center' ? 'center' : block.styles.align === 'right' ? 'flex-end' : 'flex-start'};">
-        ${block.content.primaryBtnText ? `<a href="${block.content.primaryBtnUrl || '#'}" style="padding:0.75rem 1.5rem;background:${brand};color:#fff;border-radius:0.75rem;font-weight:700;font-size:0.75rem;text-decoration:none;">${block.content.primaryBtnText}</a>` : ''}
-        ${block.content.secondaryBtnText ? `<a href="${block.content.secondaryBtnUrl || '#'}" style="padding:0.75rem 1.5rem;border:2px solid ${brand};color:${brand};border-radius:0.75rem;font-weight:700;font-size:0.75rem;text-decoration:none;">${block.content.secondaryBtnText}</a>` : ''}
+      if (block.type === 'hero_section') return `
+<section style="${style}${pad}">
+  <div style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1fr ${block.content.imageUrl?'1fr':''};gap:3rem;align-items:center;text-align:${block.styles.align};">
+    <div>
+      ${block.content.subtitle?`<span style="display:inline-block;padding:.25rem .75rem;background:${brand}20;color:${brand};font-size:.6875rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;border-radius:9999px;margin-bottom:1.25rem;">${block.content.subtitle}</span>`:''}
+      <h1 style="font-size:clamp(2.25rem,5vw,3.75rem);font-weight:900;line-height:1.05;letter-spacing:-.03em;margin:0 0 1.25rem;">${block.content.title||''}</h1>
+      <p style="font-size:1.0625rem;opacity:.75;line-height:1.7;max-width:40rem;${block.styles.align==='center'?'margin:0 auto 2rem;':'margin:0 0 2rem;'}">${block.content.description||''}</p>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;justify-content:${block.styles.align==='center'?'center':block.styles.align==='right'?'flex-end':'flex-start'};">
+        ${block.content.primaryBtnText?`<a href="${block.content.primaryBtnUrl||'#'}" style="padding:.875rem 2rem;background:${brand};color:#fff;border-radius:${rad};font-weight:700;font-size:.875rem;text-decoration:none;box-shadow:0 4px 14px ${brand}40;">${block.content.primaryBtnText}</a>`:''}
+        ${block.content.secondaryBtnText?`<a href="${block.content.secondaryBtnUrl||'#'}" style="padding:.875rem 2rem;border:2px solid ${brand};color:${brand};border-radius:${rad};font-weight:600;font-size:.875rem;text-decoration:none;">${block.content.secondaryBtnText}</a>`:''}
       </div>
     </div>
-  </section>`;
-      }
+    ${block.content.imageUrl?`<img src="${block.content.imageUrl}" alt="${block.content.imageAlt||''}" style="width:100%;height:auto;border-radius:${rad};object-fit:cover;max-height:480px;" />`:''}
+  </div>
+</section>`;
 
-      if (block.type === 'text_block') {
-        const tag = block.content.textTag || 'p';
-        const isQuote = tag === 'blockquote';
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:${block.styles.maxWidth === '2xl' ? '42rem' : block.styles.maxWidth === '4xl' ? '56rem' : '48rem'};${block.styles.align === 'center' ? 'margin:0 auto;' : ''}text-align:${block.styles.align};">
-      <${tag} style="font-size:${block.content.textFontSize || 16}px;font-weight:${block.content.textFontWeight || 400};line-height:${block.content.textLineHeight || 1.8};letter-spacing:${(block.content.textLetterSpacing || 0) / 100}em;text-decoration:${block.content.textDecoration || 'none'};text-transform:${block.content.textTransform || 'none'};color:${block.styles.textColor};${isQuote ? `border-left:4px solid ${brand};padding-left:1.5rem;font-style:italic;opacity:0.85;` : ''}margin:0;">${block.content.textContent || ''}</${tag}>
+      if (block.type === 'text_block') { const tag=block.content.textTag||'p'; return `
+<section style="${style}${pad}">
+  <div style="max-width:48rem;${block.styles.align==='center'?'margin:0 auto;':''}text-align:${block.styles.align};">
+    <${tag} style="font-size:${block.content.textFontSize||16}px;font-weight:${block.content.textFontWeight||400};line-height:${block.content.textLineHeight||1.8};letter-spacing:${(block.content.textLetterSpacing||0)/100}em;text-decoration:${block.content.textDecoration||'none'};text-transform:${block.content.textTransform||'none'};color:${block.styles.textColor};${tag==='blockquote'?`border-left:4px solid ${brand};padding-left:1.5rem;font-style:italic;opacity:.85;`:''}margin:0;">${block.content.textContent||''}</${tag}>
+  </div>
+</section>`; }
+
+      if (block.type === 'stats_block') return `
+<section style="${style}${pad}">
+  <div style="max-width:1280px;margin:0 auto;">
+    ${block.content.title?`<h2 style="font-size:2rem;font-weight:900;text-align:center;margin-bottom:3rem;letter-spacing:-.02em;">${block.content.title}</h2>`:''}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:2rem;text-align:center;">
+      ${(block.content.stats||[]).map(s=>`<div><div style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;color:${brand};letter-spacing:-.03em;">${s.prefix||''}${s.value}${s.suffix||''}</div><div style="font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.55;margin-top:.5rem;">${s.label}</div></div>`).join('')}
     </div>
-  </section>`;
-      }
+  </div>
+</section>`;
 
-      if (block.type === 'stats_block') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:1280px;margin:0 auto;">
-      ${block.content.title ? `<h2 style="font-size:2rem;font-weight:900;text-align:center;margin-bottom:3rem;">${block.content.title}</h2>` : ''}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2rem;text-align:center;">
-        ${(block.content.stats || []).map(s => `
-        <div>
-          <div style="font-size:clamp(2rem,5vw,3rem);font-weight:900;color:${brand};">${s.prefix || ''}${s.value}${s.suffix || ''}</div>
-          <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;opacity:0.6;margin-top:0.5rem;">${s.label}</div>
-        </div>`).join('')}
-      </div>
+      if (block.type === 'features_grid') return `
+<section style="${style}${pad}">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div style="max-width:44rem;${block.styles.align==='center'?'margin:0 auto;text-align:center;':''}margin-bottom:3rem;">
+      ${block.content.subtitle?`<span style="font-size:.6875rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:${brand};display:block;margin-bottom:.5rem;">${block.content.subtitle}</span>`:''}
+      <h2 style="font-size:clamp(1.75rem,4vw,2.75rem);font-weight:900;letter-spacing:-.02em;margin:0 0 .75rem;">${block.content.title||''}</h2>
+      ${block.content.description?`<p style="font-size:.9375rem;opacity:.7;line-height:1.7;margin:0;">${block.content.description}</p>`:''}
     </div>
-  </section>`;
-      }
-
-      if (block.type === 'features_grid') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:1280px;margin:0 auto;">
-      <div style="max-width:48rem;${block.styles.align === 'center' ? 'margin:0 auto;text-align:center;' : ''}margin-bottom:3rem;">
-        ${block.content.subtitle ? `<span style="font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:${brand};display:block;margin-bottom:0.5rem;">${block.content.subtitle}</span>` : ''}
-        <h2 style="font-size:2rem;font-weight:900;margin:0 0 0.75rem;">${block.content.title || ''}</h2>
-        ${block.content.description ? `<p style="font-size:0.875rem;opacity:0.7;line-height:1.7;margin:0;">${block.content.description}</p>` : ''}
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
-        ${(block.content.features || []).map(f => `
-        <div style="padding:1.5rem;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:1rem;">
-          <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:${brand}15;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;color:${brand};font-weight:900;">✦</div>
-          <h3 style="font-weight:800;font-size:0.875rem;margin:0 0 0.5rem;">${f.title}</h3>
-          <p style="font-size:0.75rem;opacity:0.8;line-height:1.6;margin:0;">${f.description}</p>
-        </div>`).join('')}
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
+      ${(block.content.features||[]).map(f=>`<div style="padding:1.5rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:${rad};transition:border-color .2s;" onmouseover="this.style.borderColor='${brand}44'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)'"><div style="width:2.5rem;height:2.5rem;border-radius:.625rem;background:${brand}18;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;color:${brand};font-size:1.25rem;">✦</div><h3 style="font-weight:800;font-size:.9375rem;margin:0 0 .5rem;">${f.title}</h3><p style="font-size:.8125rem;opacity:.75;line-height:1.65;margin:0;">${f.description}</p></div>`).join('')}
     </div>
-  </section>`;
-      }
+  </div>
+</section>`;
 
-      if (block.type === 'testimonials') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:1280px;margin:0 auto;">
-      <div style="text-align:center;margin-bottom:3rem;">
-        ${block.content.subtitle ? `<span style="font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:${brand};display:block;margin-bottom:0.5rem;">${block.content.subtitle}</span>` : ''}
-        <h2 style="font-size:2rem;font-weight:900;margin:0;">${block.content.title || ''}</h2>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;">
-        ${(block.content.testimonials || []).map(t => `
-        <div style="padding:1.5rem;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:1rem;">
-          <div style="color:#fbbf24;margin-bottom:0.75rem;">★★★★★</div>
-          <p style="font-size:0.875rem;font-style:italic;line-height:1.7;margin:0 0 1rem;opacity:0.9;">"${t.quote}"</p>
-          <div style="display:flex;align-items:center;gap:0.75rem;border-top:1px solid rgba(0,0,0,0.06);padding-top:1rem;">
-            <img src="${t.avatarUrl}" alt="${t.author}" style="width:2.5rem;height:2.5rem;border-radius:50%;object-fit:cover;" />
-            <div>
-              <div style="font-weight:800;font-size:0.75rem;">${t.author}</div>
-              <div style="font-size:0.625rem;opacity:0.6;">${t.role}</div>
-            </div>
-          </div>
-        </div>`).join('')}
-      </div>
+      if (block.type === 'testimonials') return `
+<section style="${style}${pad}">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div style="text-align:center;margin-bottom:3rem;">
+      ${block.content.subtitle?`<span style="font-size:.6875rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:${brand};display:block;margin-bottom:.5rem;">${block.content.subtitle}</span>`:''}
+      <h2 style="font-size:clamp(1.75rem,4vw,2.75rem);font-weight:900;letter-spacing:-.02em;margin:0;">${block.content.title||''}</h2>
     </div>
-  </section>`;
-      }
-
-      if (block.type === 'pricing_cards') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:1280px;margin:0 auto;">
-      <div style="text-align:center;margin-bottom:3rem;">
-        ${block.content.subtitle ? `<span style="font-size:0.625rem;font-weight:900;text-transform:uppercase;color:${brand};display:block;margin-bottom:0.5rem;">${block.content.subtitle}</span>` : ''}
-        <h2 style="font-size:2rem;font-weight:900;margin:0;">${block.content.title || ''}</h2>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;max-width:900px;margin:0 auto;">
-        ${(block.content.pricingPlans || []).map(p => `
-        <div style="padding:2rem;background:#fff;border:${p.popular ? `2px solid ${brand}` : '1px solid rgba(0,0,0,0.08)'};border-radius:1rem;position:relative;">
-          ${p.popular ? `<span style="position:absolute;top:-0.75rem;left:50%;transform:translateX(-50%);background:${brand};color:#fff;padding:0.25rem 1rem;border-radius:9999px;font-size:0.625rem;font-weight:900;text-transform:uppercase;">POPULAR</span>` : ''}
-          <h3 style="font-size:0.625rem;font-weight:900;text-transform:uppercase;opacity:0.5;margin:0 0 0.75rem;">${p.name}</h3>
-          <div style="font-size:2.5rem;font-weight:900;margin-bottom:1.5rem;">${p.price}<span style="font-size:0.75rem;opacity:0.5;font-weight:500;">/${p.period}</span></div>
-          <ul style="list-style:none;padding:0;margin:0 0 1.5rem;font-size:0.75rem;">
-            ${p.features.map(f => `<li style="padding:0.5rem 0;border-bottom:1px solid rgba(0,0,0,0.05);display:flex;gap:0.5rem;align-items:flex-start;"><span style="color:${brand};font-weight:900;">✓</span>${f}</li>`).join('')}
-          </ul>
-          <a href="#" style="display:block;text-align:center;padding:0.75rem;background:${p.popular ? brand : 'transparent'};color:${p.popular ? '#fff' : block.styles.textColor};border:2px solid ${brand};border-radius:0.75rem;font-weight:800;font-size:0.75rem;text-decoration:none;">${p.btnText}</a>
-        </div>`).join('')}
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;">
+      ${(block.content.testimonials||[]).map(t=>`<div style="padding:1.75rem;border:1px solid rgba(255,255,255,.08);border-radius:${rad};"><div style="color:#fbbf24;font-size:1rem;margin-bottom:.75rem;letter-spacing:.05em;">★★★★★</div><p style="font-size:.9375rem;font-style:italic;line-height:1.7;opacity:.9;margin:0 0 1.25rem;">"${t.quote}"</p><div style="display:flex;align-items:center;gap:.75rem;border-top:1px solid rgba(255,255,255,.06);padding-top:1.25rem;"><img src="${t.avatarUrl}" alt="${t.author}" style="width:2.5rem;height:2.5rem;border-radius:50%;object-fit:cover;" /><div><div style="font-weight:800;font-size:.8125rem;">${t.author}</div><div style="font-size:.6875rem;opacity:.55;margin-top:.1rem;">${t.role}</div></div></div></div>`).join('')}
     </div>
-  </section>`;
-      }
+  </div>
+</section>`;
 
-      if (block.type === 'faq_block') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:42rem;margin:0 auto;">
-      ${block.content.title ? `<h2 style="font-size:2rem;font-weight:900;text-align:center;margin-bottom:2rem;">${block.content.title}</h2>` : ''}
-      <div>
-        ${(block.content.faqs || []).map((faq, i) => `
-        <details style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:0.75rem;padding:1rem 1.25rem;margin-bottom:0.75rem;">
-          <summary style="font-weight:700;font-size:0.875rem;cursor:pointer;list-style:none;">${faq.question}</summary>
-          <p style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.75;line-height:1.7;">${faq.answer}</p>
-        </details>`).join('')}
-      </div>
+      if (block.type === 'pricing_cards') return `
+<section style="${style}${pad}">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div style="text-align:center;margin-bottom:3rem;">
+      ${block.content.subtitle?`<span style="font-size:.6875rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:${brand};display:block;margin-bottom:.5rem;">${block.content.subtitle}</span>`:''}
+      <h2 style="font-size:clamp(1.75rem,4vw,2.75rem);font-weight:900;letter-spacing:-.02em;margin:0 0 .5rem;">${block.content.title||''}</h2>
+      ${block.content.description?`<p style="font-size:.9375rem;opacity:.65;">${block.content.description}</p>`:''}
     </div>
-  </section>`;
-      }
-
-      if (block.type === 'team_block') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;">
-    <div style="max-width:1280px;margin:0 auto;">
-      ${block.content.title ? `<h2 style="font-size:2rem;font-weight:900;text-align:center;margin-bottom:3rem;">${block.content.title}</h2>` : ''}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem;">
-        ${(block.content.team || []).map(m => `
-        <div style="padding:1.5rem;background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:1rem;text-align:center;">
-          <img src="${m.avatarUrl}" alt="${m.name}" style="width:4rem;height:4rem;border-radius:50%;object-fit:cover;margin:0 auto 1rem;" />
-          <h3 style="font-weight:900;font-size:0.875rem;margin:0 0 0.25rem;">${m.name}</h3>
-          <div style="font-size:0.75rem;font-weight:700;color:${brand};margin-bottom:0.75rem;">${m.role}</div>
-          <p style="font-size:0.75rem;opacity:0.7;line-height:1.6;margin:0;">${m.bio}</p>
-        </div>`).join('')}
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;max-width:900px;margin:0 auto;">
+      ${(block.content.pricingPlans||[]).map(p=>`<div style="padding:2rem;border:${p.popular?`2px solid ${brand}`:'1px solid rgba(255,255,255,.1)'};border-radius:${rad};position:relative;${p.popular?`box-shadow:0 0 0 4px ${brand}22;`:''}">
+        ${p.popular?`<span style="position:absolute;top:-.875rem;left:50%;transform:translateX(-50%);background:${brand};color:#fff;padding:.25rem .875rem;border-radius:9999px;font-size:.625rem;font-weight:800;text-transform:uppercase;white-space:nowrap;">MOST POPULAR</span>`:''}
+        <div style="font-size:.625rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;opacity:.5;margin-bottom:.75rem;">${p.name}</div>
+        <div style="margin-bottom:1.5rem;"><span style="font-size:2.75rem;font-weight:900;letter-spacing:-.03em;">${p.price}</span><span style="font-size:.8125rem;opacity:.45;margin-left:.25rem;">/${p.period}</span></div>
+        <ul style="list-style:none;padding:0;margin:0 0 1.5rem;font-size:.8125rem;">
+          ${p.features.map(f=>`<li style="padding:.4rem 0;display:flex;gap:.5rem;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.05);"><span style="color:${brand};font-weight:700;flex-shrink:0;">✓</span>${f}</li>`).join('')}
+        </ul>
+        <a href="#" style="display:block;text-align:center;padding:.75rem;background:${p.popular?brand:'transparent'};color:${p.popular?'#fff':block.styles.textColor};border:2px solid ${brand};border-radius:${rad};font-weight:700;font-size:.8125rem;text-decoration:none;">${p.btnText}</a>
+      </div>`).join('')}
     </div>
-  </section>`;
-      }
+  </div>
+</section>`;
 
-      if (block.type === 'logo_bar') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
-    ${block.content.logoBarTitle ? `<p style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.45;margin-bottom:2rem;">${block.content.logoBarTitle}</p>` : ''}
-    <div style="display:flex;flex-wrap:wrap;gap:2rem 3rem;align-items:center;justify-content:center;opacity:0.5;filter:grayscale(100%);">
-      ${(block.content.logos || []).map(l => `<img src="${l.logoUrl}" alt="${l.name}" style="height:1.75rem;width:auto;object-fit:contain;" />`).join('\n      ')}
+      if (block.type === 'faq_block') return `
+<section style="${style}${pad}">
+  <div style="max-width:44rem;margin:0 auto;">
+    ${block.content.title?`<h2 style="font-size:clamp(1.75rem,4vw,2.5rem);font-weight:900;text-align:center;margin-bottom:2.5rem;letter-spacing:-.02em;">${block.content.title}</h2>`:''}
+    ${(block.content.faqs||[]).map(f=>`<details style="border:1px solid rgba(255,255,255,.08);border-radius:${rad};padding:1rem 1.25rem;margin-bottom:.75rem;"><summary style="font-weight:700;font-size:.9375rem;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">${f.question}<span style="font-size:1.25rem;opacity:.4;font-weight:300;flex-shrink:0;margin-left:1rem;">+</span></summary><p style="margin:.875rem 0 0;font-size:.875rem;opacity:.7;line-height:1.7;">${f.answer}</p></details>`).join('')}
+  </div>
+</section>`;
+
+      if (block.type === 'team_block') return `
+<section style="${style}${pad}">
+  <div style="max-width:1280px;margin:0 auto;">
+    ${block.content.title?`<h2 style="font-size:clamp(1.75rem,4vw,2.75rem);font-weight:900;text-align:center;margin-bottom:3rem;letter-spacing:-.02em;">${block.content.title}</h2>`:''}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;">
+      ${(block.content.team||[]).map(m=>`<div style="padding:1.75rem;border:1px solid rgba(255,255,255,.08);border-radius:${rad};text-align:center;"><img src="${m.avatarUrl}" alt="${m.name}" style="width:4rem;height:4rem;border-radius:50%;object-fit:cover;margin:0 auto 1rem;" /><h3 style="font-weight:900;font-size:.9375rem;margin:0 0 .25rem;">${m.name}</h3><div style="font-size:.75rem;font-weight:700;color:${brand};margin-bottom:.75rem;">${m.role}</div><p style="font-size:.8125rem;opacity:.65;line-height:1.6;margin:0;">${m.bio}</p></div>`).join('')}
     </div>
-  </section>`;
-      }
+  </div>
+</section>`;
 
-      if (block.type === 'contact_form') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
-    <div style="max-width:32rem;margin:0 auto;">
-      <h2 style="font-size:2rem;font-weight:900;margin-bottom:0.75rem;">${block.content.title || ''}</h2>
-      <p style="font-size:0.875rem;opacity:0.7;margin-bottom:2rem;">${block.content.description || ''}</p>
-      <form style="background:#fff;padding:2rem;border-radius:1rem;border:1px solid rgba(0,0,0,0.06);text-align:left;" onsubmit="event.preventDefault();alert('Message sent!');">
-        ${(block.content.formFields || []).map(f => `
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:0.625rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;opacity:0.5;margin-bottom:0.4rem;">${f.label}</label>
-          ${f.type === 'textarea' ? `<textarea placeholder="${f.placeholder}" rows="3" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #e2e8f0;border-radius:0.625rem;font-size:0.75rem;font-family:inherit;resize:vertical;box-sizing:border-box;"></textarea>` : `<input type="${f.type}" placeholder="${f.placeholder}" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #e2e8f0;border-radius:0.625rem;font-size:0.75rem;font-family:inherit;box-sizing:border-box;" />`}
-        </div>`).join('')}
-        <button type="submit" style="width:100%;padding:0.875rem;background:${brand};color:#fff;border:none;border-radius:0.75rem;font-weight:800;font-size:0.75rem;cursor:pointer;margin-top:0.5rem;">${block.content.formBtnText || 'Send Message'}</button>
-      </form>
+      if (block.type === 'logo_bar') return `
+<section style="${style}${pad}text-align:center;">
+  ${block.content.logoBarTitle?`<p style="font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.4;margin-bottom:2rem;">${block.content.logoBarTitle}</p>`:''}
+  <div style="display:flex;flex-wrap:wrap;gap:2rem 3rem;align-items:center;justify-content:center;opacity:.5;filter:grayscale(100%);">
+    ${(block.content.logos||[]).map(l=>`<img src="${l.logoUrl}" alt="${l.name}" style="height:1.75rem;width:auto;object-fit:contain;" />`).join('')}
+  </div>
+</section>`;
+
+      if (block.type === 'contact_form') return `
+<section style="${style}${pad}text-align:center;">
+  <div style="max-width:32rem;margin:0 auto;">
+    <h2 style="font-size:clamp(1.75rem,4vw,2.5rem);font-weight:900;margin-bottom:.75rem;letter-spacing:-.02em;">${block.content.title||''}</h2>
+    <p style="opacity:.65;margin-bottom:2rem;font-size:.9375rem;">${block.content.description||''}</p>
+    <form style="text-align:left;" onsubmit="event.preventDefault();this.innerHTML='<p style=text-align:center;padding:2rem;font-weight:700;color:${brand}>Message sent! ✓</p>'">
+      ${(block.content.formFields||[]).map(f=>`<div style="margin-bottom:1rem;"><label style="display:block;font-size:.6875rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.5;margin-bottom:.4rem;">${f.label}</label>${f.type==='textarea'?`<textarea placeholder="${f.placeholder}" rows="3" style="width:100%;padding:.625rem .875rem;border:1px solid rgba(255,255,255,.12);border-radius:.5rem;background:rgba(255,255,255,.04);color:inherit;font-family:inherit;font-size:.875rem;resize:vertical;box-sizing:border-box;" onfocus="this.style.borderColor='${brand}'" onblur="this.style.borderColor='rgba(255,255,255,.12)'"></textarea>`:`<input type="${f.type}" placeholder="${f.placeholder}" style="width:100%;padding:.625rem .875rem;border:1px solid rgba(255,255,255,.12);border-radius:.5rem;background:rgba(255,255,255,.04);color:inherit;font-family:inherit;font-size:.875rem;box-sizing:border-box;" onfocus="this.style.borderColor='${brand}'" onblur="this.style.borderColor='rgba(255,255,255,.12)'" />`}</div>`).join('')}
+      <button type="submit" style="width:100%;padding:.875rem;background:${brand};color:#fff;border:none;border-radius:${rad};font-weight:700;font-size:.875rem;cursor:pointer;margin-top:.5rem;font-family:inherit;">${block.content.formBtnText||'Send Message'}</button>
+    </form>
+  </div>
+</section>`;
+
+      if (block.type === 'cta_block') return `
+<section style="${style}${pad}text-align:center;">
+  <div style="max-width:56rem;margin:0 auto;">
+    <h2 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;letter-spacing:-.03em;margin:0 0 1rem;">${block.content.title||''}</h2>
+    <p style="font-size:1.0625rem;opacity:.85;max-width:42rem;margin:0 auto 2.5rem;line-height:1.7;">${block.content.description||''}</p>
+    <div style="display:flex;gap:.875rem;justify-content:center;flex-wrap:wrap;">
+      ${block.content.primaryBtnText?`<a href="${block.content.primaryBtnUrl||'#'}" style="padding:.875rem 2rem;background:#fff;color:${block.styles.bgColor};border-radius:${rad};font-weight:800;font-size:.9375rem;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.2);">${block.content.primaryBtnText}</a>`:''}
+      ${block.content.secondaryBtnText?`<a href="${block.content.secondaryBtnUrl||'#'}" style="padding:.875rem 2rem;border:2px solid rgba(255,255,255,.35);color:inherit;border-radius:${rad};font-weight:600;font-size:.9375rem;text-decoration:none;">${block.content.secondaryBtnText}</a>`:''}
     </div>
-  </section>`;
-      }
+  </div>
+</section>`;
 
-      if (block.type === 'cta_block') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
-    <div style="max-width:56rem;margin:0 auto;">
-      <h2 style="font-size:clamp(1.75rem,4vw,3rem);font-weight:900;margin-bottom:1rem;">${block.content.title || ''}</h2>
-      <p style="font-size:1rem;opacity:0.9;max-width:42rem;margin:0 auto 2rem;line-height:1.7;">${block.content.description || ''}</p>
-      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
-        ${block.content.primaryBtnText ? `<a href="${block.content.primaryBtnUrl || '#'}" style="padding:0.875rem 1.75rem;background:#fff;color:${block.styles.bgColor};border-radius:0.75rem;font-weight:800;font-size:0.875rem;text-decoration:none;">${block.content.primaryBtnText}</a>` : ''}
-        ${block.content.secondaryBtnText ? `<a href="${block.content.secondaryBtnUrl || '#'}" style="padding:0.875rem 1.75rem;border:2px solid rgba(255,255,255,0.35);color:inherit;border-radius:0.75rem;font-weight:700;font-size:0.875rem;text-decoration:none;">${block.content.secondaryBtnText}</a>` : ''}
-      </div>
+      if (block.type === 'image_block') return `
+<section style="${style}${pad}text-align:center;">
+  <div style="max-width:64rem;margin:0 auto;">
+    ${block.content.imageUrl?`<img src="${block.content.imageUrl}" alt="${block.content.imageAlt||''}" style="width:100%;height:auto;max-height:520px;object-fit:cover;border-radius:${rad};" />`:''}
+    ${block.content.description?`<p style="font-size:.8125rem;opacity:.5;font-style:italic;margin-top:.875rem;">${block.content.description}</p>`:''}
+  </div>
+</section>`;
+
+      if (block.type === 'video_embed') return `
+<section style="${style}${pad}text-align:center;">
+  <div style="max-width:56rem;margin:0 auto;">
+    ${block.content.title?`<h3 style="font-weight:900;font-size:1.5rem;margin-bottom:1rem;letter-spacing:-.02em;">${block.content.title}</h3>`:''}
+    <div style="position:relative;padding-bottom:56.25%;border-radius:${rad};overflow:hidden;border:1px solid rgba(255,255,255,.1);">
+      <iframe src="${block.content.videoUrl||''}" style="position:absolute;inset:0;width:100%;height:100%;border:none;" allowfullscreen></iframe>
     </div>
-  </section>`;
-      }
+  </div>
+</section>`;
 
-      if (block.type === 'image_block') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
-    <div style="max-width:56rem;margin:0 auto;">
-      ${block.content.imageUrl ? `<img src="${block.content.imageUrl}" alt="${block.content.imageAlt || ''}" style="width:100%;height:auto;max-height:460px;object-fit:cover;border-radius:1rem;" />` : ''}
-      ${block.content.description ? `<p style="font-size:0.75rem;opacity:0.6;font-style:italic;margin-top:0.75rem;">${block.content.description}</p>` : ''}
-    </div>
-  </section>`;
-      }
+      if (block.type === 'divider') return `<div style="${style}padding:.5rem clamp(1rem,5vw,4rem);"><hr style="border:none;border-top:1px ${block.content.dividerStyle||'solid'} rgba(255,255,255,.12);" /></div>`;
+      if (block.type === 'spacer') return `<div style="background:${block.styles.bgColor};height:${block.content.spacerHeight||48}px;"></div>`;
 
-      if (block.type === 'video_embed') {
-        return `
-  <section style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;text-align:center;">
-    <div style="max-width:56rem;margin:0 auto;">
-      ${block.content.title ? `<h3 style="font-weight:900;font-size:1.25rem;margin-bottom:1rem;">${block.content.title}</h3>` : ''}
-      <div style="position:relative;padding-bottom:56.25%;border-radius:1rem;overflow:hidden;">
-        <iframe src="${block.content.videoUrl || ''}" style="position:absolute;inset:0;width:100%;height:100%;border:none;" allowfullscreen></iframe>
-      </div>
-    </div>
-  </section>`;
-      }
-
-      if (block.type === 'divider') {
-        return `<div style="${sectionStyle} padding:0.5rem 3rem;"><hr style="border:none;border-top:1px ${block.content.dividerStyle || 'solid'} ${block.styles.textColor}25;" /></div>`;
-      }
-
-      if (block.type === 'spacer') {
-        return `<div style="background:${block.styles.bgColor};height:${block.content.spacerHeight || 48}px;"></div>`;
-      }
-
-      if (block.type === 'footer') {
-        return `
-  <footer style="${sectionStyle} ${padStyle} padding-left:3rem;padding-right:3rem;border-top:1px solid rgba(255,255,255,0.08);">
-    <div style="max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
-      <span style="font-weight:900;font-size:1rem;color:${brand};">${block.content.brandName || 'Brand'}</span>
-      <span style="font-size:0.75rem;opacity:0.5;">${block.content.copyright || ''}</span>
-      <div style="display:flex;gap:1.5rem;">
-        ${(block.content.links || []).map(l => `<a href="${l.url}" style="color:inherit;font-size:0.75rem;opacity:0.6;text-decoration:none;">${l.label}</a>`).join('\n        ')}
-      </div>
-    </div>
-  </footer>`;
-      }
-
-      return `<!-- ${block.type} -->`;
+      if (block.type === 'footer') return `
+<footer style="${style}${pad}border-top:1px solid rgba(255,255,255,.07);">
+  <div style="max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
+    <span style="font-weight:900;font-size:1.0625rem;color:${brand};">${block.content.brandName||'Brand'}</span>
+    <span style="font-size:.8125rem;opacity:.4;">${block.content.copyright||''}</span>
+    <div style="display:flex;gap:1.5rem;">${(block.content.links||[]).map(l=>`<a href="${l.url}" style="color:inherit;font-size:.8125rem;opacity:.45;text-decoration:none;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='.45'">${l.label}</a>`).join('')}</div>
+  </div>
+</footer>`;
+      return '';
     }).join('\n');
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>${proj.name}</title>
-  <link href="${fontImport}" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="${fontUrl}" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body { margin: 0; padding: 0; font-family: ${proj.style.fontFamily}; background: ${proj.style.background}; }
-    img { max-width: 100%; display: block; }
-    @media (max-width: 768px) {
-      nav div { flex-wrap: wrap; }
-      section { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
-      footer { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
-    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:${proj.style.fontFamily};background:${proj.style.background};color:#e5e5e5;line-height:1.5}
+    img{max-width:100%;display:block}
+    details summary::-webkit-details-marker{display:none}
+    @media(max-width:768px){section,nav,footer{padding-left:1.25rem!important;padding-right:1.25rem!important}}
   </style>
 </head>
 <body>
@@ -333,162 +250,237 @@ ${blocksHTML}
   };
 
   const triggerExport = (fmt: 'html' | 'react') => {
-    const code = fmt === 'html' ? generateHTML(project) : `// React export\n// Copy the JSX from your Landy project\nexport default function LandingPage() {\n  return (\n    <div>\n      {/* ${project.blocks.length} blocks — use Landy HTML export for full code */}\n    </div>\n  );\n}`;
-    setExportModal({ title: fmt === 'html' ? 'HTML Export' : 'React Export', code, type: fmt });
-    setShowExportDropdown(false);
+    setExportModal({ title: fmt === 'html' ? 'Export HTML' : 'Export React', code: fmt === 'html' ? generateHTML(project) : `// React export for: ${project.name}\n// Use the HTML export for full production code\nexport default function LandingPage() {\n  return <div>{/* ${project.blocks.length} blocks */}</div>;\n}`, type: fmt });
+    setShowExportMenu(false);
   };
 
-  const handleCopy = () => {
-    if (exportModal) { navigator.clipboard.writeText(exportModal.code); setCopied(true); setTimeout(() => setCopied(false), 1500); }
-  };
-
+  const handleCopy = () => { if (exportModal) { navigator.clipboard.writeText(exportModal.code); setCopied(true); setTimeout(() => setCopied(false), 1500); } };
   const handleDownload = () => {
     if (!exportModal) return;
     const a = document.createElement('a');
-    const blob = new Blob([exportModal.code], { type: 'text/plain' });
-    a.href = URL.createObjectURL(blob);
+    a.href = URL.createObjectURL(new Blob([exportModal.code], { type: 'text/plain' }));
     a.download = exportModal.type === 'html' ? 'landing.html' : 'LandingPage.tsx';
     a.click();
   };
 
+  const viewports = [
+    { id: 'desktop', icon: Monitor, label: 'Desktop' },
+    { id: 'laptop', icon: Laptop, label: 'Laptop' },
+    { id: 'tablet', icon: Tablet, label: 'Tablet' },
+    { id: 'mobile', icon: Smartphone, label: 'Mobile' },
+  ] as const;
+
   return (
-    <header className="h-14 min-h-[3.5rem] border-b border-slate-200 bg-white flex items-center justify-between px-3 md:px-4 select-none relative z-50">
+    <>
+      <header className="figma-toolbar flex items-center justify-between px-3 select-none shrink-0" style={{ height: 48 }}>
 
-      {/* Logo */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Mobile panel toggle */}
-        {!isPreviewMode && (
-          <button onClick={onShowMobilePanel} className="md:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors mr-1">
-            <Menu className="w-4 h-4 text-slate-600" />
-          </button>
-        )}
-        <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center font-black text-white text-sm shrink-0">L</div>
-        <div className="hidden sm:block">
-          <h1 className="text-sm font-black tracking-tight text-slate-800 leading-none">Landy</h1>
-          <p className="text-[9px] text-slate-400 font-medium leading-none mt-0.5">No-Code Builder</p>
-        </div>
-      </div>
-
-      {/* Center controls — hide on small screens */}
-      {!isPreviewMode && (
-        <div className="hidden md:flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 gap-0.5">
-          {/* Undo/Redo */}
-          <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-            className={`p-1.5 rounded-lg transition-colors ${canUndo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}>
-            <Undo2 className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
-            className={`p-1.5 rounded-lg transition-colors ${canRedo ? 'text-slate-600 hover:bg-white hover:shadow-sm' : 'text-slate-300 cursor-not-allowed'}`}>
-            <Redo2 className="w-3.5 h-3.5" />
+        {/* ── Left: Logo + tools ──────────────────────────── */}
+        <div className="flex items-center gap-1">
+          {/* Mobile panel trigger */}
+          <button onClick={onShowMobilePanel} className="fig-icon-btn md:hidden">
+            <Menu size={15} />
           </button>
 
-          <div className="w-px h-4 bg-slate-200 mx-1" />
-
-          {/* Viewport selectors */}
-          {([['desktop', Monitor, 'Desk'], ['laptop', Laptop, 'Laptop'], ['tablet', Tablet, 'Tablet'], ['mobile', Smartphone, 'Mobile']] as const).map(([vp, Icon, label]) => (
-            <button key={vp} onClick={() => setViewport(vp as ViewportMode)}
-              className={`px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${viewport === vp ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-              <Icon className="w-3.5 h-3.5" /><span className="hidden lg:inline">{label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Right controls */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* Zoom — desktop only */}
-        {!isPreviewMode && (
-          <div className="hidden lg:flex items-center bg-slate-50 border border-slate-200 px-2 py-1 rounded-xl gap-1.5 text-xs font-bold text-slate-500">
-            <button onClick={() => setZoom(Math.max(40, zoom - 10))} disabled={zoom <= 40} className="hover:text-slate-800 disabled:opacity-30 w-4 text-center">−</button>
-            <span className="w-7 text-center font-mono">{zoom}%</span>
-            <button onClick={() => setZoom(Math.min(130, zoom + 10))} disabled={zoom >= 130} className="hover:text-slate-800 disabled:opacity-30 w-4 text-center">+</button>
+          {/* Logo mark */}
+          <div className="flex items-center gap-2 mr-2">
+            <div className="w-7 h-7 rounded-md flex items-center justify-center font-black text-white text-sm"
+              style={{ background: 'linear-gradient(135deg,#7c3aed,#2563eb)' }}>L</div>
+            <span className="hidden lg:block text-xs font-bold text-white/80">Landy</span>
           </div>
-        )}
 
-        {/* Shortcuts button — desktop */}
-        {!isPreviewMode && (
-          <button onClick={onShowShortcuts} title="Keyboard shortcuts" className="hidden md:flex p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-xl transition-colors">
-            <Keyboard className="w-3.5 h-3.5" />
-          </button>
-        )}
+          <div className="toolbar-sep" />
 
-        {/* Gallery — desktop */}
-        {!isPreviewMode && (
-          <button onClick={onShowGallery} className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors text-xs font-bold">
-            <Globe className="w-3.5 h-3.5 text-blue-500" /><span className="hidden lg:inline">Gallery</span>
-          </button>
-        )}
+          {/* Cursor / Hand tool (cosmetic, Figma-style) */}
+          {!isPreviewMode && (
+            <>
+              <button className="fig-icon-btn active" title="Select (V)"><MousePointer2 size={14} /></button>
+              <button className="fig-icon-btn" title="Hand tool (H)"><Hand size={14} /></button>
+              <button className="fig-icon-btn" title="Frame (F)"><Frame size={14} /></button>
+              <div className="toolbar-sep" />
+            </>
+          )}
 
-        {/* Preview toggle */}
-        <button onClick={() => setIsPreviewMode(!isPreviewMode)}
-          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${isPreviewMode ? 'bg-indigo-600 text-white shadow-md' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-          {isPreviewMode ? <><EyeOff className="w-3.5 h-3.5" /><span className="hidden sm:inline">Edit</span></> : <><Eye className="w-3.5 h-3.5" /><span className="hidden sm:inline">Preview</span></>}
-        </button>
+          {/* Undo / Redo */}
+          {!isPreviewMode && (
+            <>
+              <button onClick={onUndo} disabled={!canUndo} className="fig-icon-btn" title="Undo (Ctrl+Z)">
+                <Undo2 size={14} />
+              </button>
+              <button onClick={onRedo} disabled={!canRedo} className="fig-icon-btn" title="Redo (Ctrl+Shift+Z)">
+                <Redo2 size={14} />
+              </button>
+              <div className="toolbar-sep hidden md:block" />
+            </>
+          )}
 
-        {/* Export */}
-        {!isPreviewMode && (
-          <div className="relative">
-            <button onClick={() => setShowExportDropdown(!showExportDropdown)}
-              className="px-2.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-all">
-              <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export</span>
+          {/* Viewport chips — desktop only */}
+          {!isPreviewMode && (
+            <div className="hidden md:flex items-center gap-0.5">
+              {viewports.map(({ id, icon: Icon, label }) => (
+                <button key={id} onClick={() => setViewport(id as ViewportMode)}
+                  className={`fig-chip ${viewport === id ? 'active' : ''}`}
+                  title={label}>
+                  <Icon size={13} />
+                  <span className="hidden lg:inline text-[11px]">{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Center: project name ─────────────────────────── */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-none">
+          <span className="text-[13px] font-semibold text-white/70 max-w-[160px] truncate">
+            {project.name || 'Untitled'}
+          </span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#3a3a3a', color: '#888' }}>
+            {project.style.theme.replace('_', ' ')}
+          </span>
+        </div>
+
+        {/* ── Right: zoom + actions ────────────────────────── */}
+        <div className="flex items-center gap-1.5">
+
+          {/* Zoom */}
+          {!isPreviewMode && (
+            <div className="hidden md:flex items-center gap-0.5 px-2 py-1 rounded-md" style={{ background: '#3a3a3a' }}>
+              <button onClick={() => setZoom(Math.max(25, zoom - 10))} disabled={zoom <= 25} className="fig-icon-btn" style={{ width: 20, height: 20 }}>
+                <ZoomOut size={11} />
+              </button>
+              <span className="zoom-display" style={{ fontSize: 11, color: '#bbb', minWidth: 36, textAlign: 'center' }}>{zoom}%</span>
+              <button onClick={() => setZoom(Math.min(200, zoom + 10))} disabled={zoom >= 200} className="fig-icon-btn" style={{ width: 20, height: 20 }}>
+                <ZoomIn size={11} />
+              </button>
+            </div>
+          )}
+
+          <div className="toolbar-sep hidden md:block" />
+
+          {/* Gallery */}
+          {!isPreviewMode && (
+            <button onClick={onShowGallery} className="fig-icon-btn has-tooltip relative" title="Community Gallery">
+              <Globe size={14} />
+              <span className="fig-tooltip">Gallery</span>
             </button>
-            {showExportDropdown && (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200 p-2 w-52 shadow-xl z-50">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block px-2 py-1 mb-1">Export Format</span>
-                <button onClick={() => triggerExport('html')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold">
-                  <Code className="w-4 h-4 text-emerald-500" /> HTML + CSS File
-                </button>
-                <button onClick={() => triggerExport('react')} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold">
-                  <FileCode className="w-4 h-4 text-indigo-500" /> React Component
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Publish */}
-        {!isPreviewMode && (
-          <button onClick={onPublishClick}
-            className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-all hover:-translate-y-px">
-            <Share2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Publish</span>
+          {/* Shortcuts */}
+          {!isPreviewMode && (
+            <button onClick={onShowShortcuts} className="fig-icon-btn hidden md:flex has-tooltip relative" title="Keyboard shortcuts">
+              <Keyboard size={14} />
+              <span className="fig-tooltip">Shortcuts</span>
+            </button>
+          )}
+
+          <div className="toolbar-sep" />
+
+          {/* Preview */}
+          <button onClick={() => setIsPreviewMode(!isPreviewMode)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+              isPreviewMode
+                ? 'text-white'
+                : 'text-white/70 hover:text-white'
+            }`}
+            style={{ background: isPreviewMode ? '#18a0fb' : '#3a3a3a' }}
+          >
+            {isPreviewMode ? <><EyeOff size={13} /> Edit</> : <><Play size={12} /> Preview</>}
           </button>
-        )}
-      </div>
 
-      {/* Export modal */}
+          {/* Export */}
+          {!isPreviewMode && (
+            <div className="relative">
+              <button onClick={() => setShowExportMenu(v => !v)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold text-white/70 hover:text-white transition-all"
+                style={{ background: '#3a3a3a' }}>
+                <Download size={13} />
+                <span className="hidden sm:inline">Export</span>
+                <ChevronDown size={11} />
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 top-full mt-1 rounded-lg border overflow-hidden z-50 animate-scale-in"
+                  style={{ background: '#2c2c2c', borderColor: '#3a3a3a', minWidth: 180, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
+                  <div className="px-3 py-2" style={{ borderBottom: '1px solid #3a3a3a' }}>
+                    <p className="section-label">Export as</p>
+                  </div>
+                  <button onClick={() => triggerExport('html')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-[12px] font-medium transition-colors"
+                    style={{ color: '#ccc' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#333')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <Code size={14} style={{ color: '#4ade80' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#e5e5e5' }}>HTML + CSS</div>
+                      <div style={{ fontSize: 10, color: '#666', marginTop: 1 }}>Production-ready file</div>
+                    </div>
+                  </button>
+                  <button onClick={() => triggerExport('react')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-[12px] font-medium transition-colors"
+                    style={{ color: '#ccc' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#333')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <FileCode size={14} style={{ color: '#60a5fa' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#e5e5e5' }}>React Component</div>
+                      <div style={{ fontSize: 10, color: '#666', marginTop: 1 }}>TypeScript + Tailwind</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Publish */}
+          {!isPreviewMode && (
+            <button onClick={onPublishClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white transition-all"
+              style={{ background: 'linear-gradient(135deg,#7c3aed,#2563eb)', boxShadow: '0 2px 8px rgba(124,58,237,.4)' }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '.9'; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}>
+              <Share2 size={13} />
+              <span className="hidden sm:inline">Publish</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Export code modal */}
       {exportModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 text-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-800 overflow-hidden">
-            <div className="px-5 py-4 bg-slate-950 flex justify-between items-center border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Code className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-sm">{exportModal.title}</h3>
-                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">
+        <div className="fig-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) setExportModal(null); }}>
+          <div className="fig-modal w-full animate-scale-in" style={{ maxWidth: 860, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="fig-modal-header">
+              <div className="flex items-center gap-2.5">
+                <Code size={16} style={{ color: '#18a0fb' }} />
+                <span className="font-bold text-sm text-white">{exportModal.title}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded font-mono" style={{ background: '#3a3a3a', color: '#888' }}>
                   {exportModal.code.length.toLocaleString()} chars
                 </span>
               </div>
-              <button onClick={() => setExportModal(null)} className="text-xs px-2.5 py-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Close</button>
+              <button onClick={() => setExportModal(null)} className="fig-icon-btn text-[11px] px-2" style={{ width: 'auto' }}>
+                Close ✕
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-[#080d1a] font-mono text-[11px] leading-relaxed text-slate-300">
+            <div className="flex-1 overflow-auto p-4 font-mono text-[11px] leading-relaxed"
+              style={{ background: '#0d1117', color: '#c9d1d9' }}>
               <pre className="whitespace-pre-wrap break-words">{exportModal.code}</pre>
             </div>
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                <AlertCircle className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                {exportModal.type === 'html' ? 'Production-ready HTML with inline styles. Works anywhere.' : 'Copy into your React project. Requires Tailwind CSS.'}
+            <div className="flex items-center justify-between gap-3 p-3" style={{ borderTop: '1px solid #3a3a3a', background: '#252525', flexWrap: 'wrap' }}>
+              <div className="flex items-center gap-1.5 text-[10px]" style={{ color: '#666' }}>
+                <AlertCircle size={12} style={{ color: '#18a0fb', flexShrink: 0 }} />
+                {exportModal.type === 'html' ? 'Self-contained HTML — works in any browser.' : 'Requires React + Tailwind CSS.'}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={handleCopy} className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'}`}>
-                  {copied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : 'Copy Code'}
+                <button onClick={handleCopy} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${copied ? '' : ''}`}
+                  style={{ background: copied ? '#166534' : '#3a3a3a', color: copied ? '#4ade80' : '#ccc' }}>
+                  {copied ? <><Check size={12} /> Copied!</> : 'Copy Code'}
                 </button>
-                <button onClick={handleDownload} className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all">
-                  <Download className="w-3.5 h-3.5" /> Download
+                <button onClick={handleDownload} className="fig-btn-primary flex items-center gap-1.5 text-[11px]">
+                  <Download size={12} /> Download
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }
