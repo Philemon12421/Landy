@@ -28,14 +28,14 @@ export default function LeftSidebar({ onAddElement, onAddBlock }: LeftSidebarPro
   ];
 
   return (
-    <div className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 h-full flex flex-col pt-16 z-40 relative">
-      <div className="p-4 border-b border-slate-800">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Elements</h3>
+    <div className="w-64 bg-slate-900 border-r border-[#3a3a3a] text-slate-300 h-full flex flex-col pt-0 z-40 relative">
+      <div className="p-4 border-b border-[#3a3a3a]">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#555] mb-3">Elements</h3>
         <div className="grid grid-cols-2 gap-2">
           {elements.map((el, i) => (
             <div
               key={i}
-              className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-800 hover:bg-slate-700 hover:text-white cursor-pointer border border-transparent hover:border-slate-600 transition-all"
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#333] hover:bg-[#18a0fb22] hover:text-white cursor-pointer border border-transparent hover:border-[#18a0fb44] transition-all"
               onClick={() => onAddElement(el.type)}
             >
               {el.icon}
@@ -46,15 +46,15 @@ export default function LeftSidebar({ onAddElement, onAddBlock }: LeftSidebarPro
       </div>
 
       <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Sections</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#555] mb-3">Sections</h3>
         <div className="flex flex-col gap-2">
           {components.map((comp) => (
             <div
               key={comp.type}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700 hover:text-white cursor-pointer border border-transparent hover:border-slate-600 transition-all group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-[#333] hover:bg-slate-700 hover:text-white cursor-pointer border border-transparent hover:border-[#18a0fb44] transition-all group"
               onClick={() => onAddBlock(comp.type)}
             >
-              <div className="p-1.5 bg-slate-950 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <div className="p-1.5 bg-[#222] rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                 {comp.icon}
               </div>
               <span className="text-xs font-semibold">{comp.label}</span>
