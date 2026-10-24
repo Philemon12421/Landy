@@ -41,6 +41,20 @@ export default function TopBar({
     const fontName = proj.style.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
     const fontUrl = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@400;500;600;700;800;900&display=swap`;
 
+    const elementsHTML = (proj.elements || []).map(el => {
+      const typeMap = { text: 'div', image: 'img', button: 'button', shape: 'div', container: 'div' };
+      const tag = typeMap[el.type] || 'div';
+      const isImg = el.type === 'image';
+      const style = `position:absolute;left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;`;
+
+      let extraStyle = '';
+      if (el.type === 'shape') extraStyle = `background:#18a0fb;border-radius:4px;`;
+      if (el.type === 'button') extraStyle = `background:#18a0fb;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;`;
+
+      if (isImg) return `<img src="https://via.placeholder.com/150" style="${style}${extraStyle}" alt="image" />`;
+      return `<${tag} style="${style}${extraStyle}">${el.content || ''}</${tag}>`;
+    }).join('\n');
+
     const blocksHTML = proj.blocks.map(block => {
       const bg = block.styles.useGradient
         ? `background:linear-gradient(to right,${block.styles.gradientFrom||'#4f46e5'},${block.styles.gradientTo||'#7c3aed'});`
@@ -244,7 +258,10 @@ export default function TopBar({
   </style>
 </head>
 <body>
+<div style="position:relative;width:100%;height:100%;min-height:100vh;">
+${elementsHTML}
 ${blocksHTML}
+</div>
 </body>
 </html>`;
   };

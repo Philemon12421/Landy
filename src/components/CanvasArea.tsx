@@ -15,12 +15,13 @@ interface CanvasAreaProps {
   onReorderBlocks?: (blocks: Block[]) => void;
   isPreviewMode: boolean;
   onAddBlock: (type: BlockType) => void;
+  onUpdateElement?: (id: string, updated: Partial<import('../types').CanvasElement>) => void;
 }
 
 export default function CanvasArea({
   project, viewport, zoom, selection, setSelection,
   onUpdateBlock, onDeleteBlock, onDuplicateBlock, onMoveBlock,
-  onReorderBlocks, isPreviewMode, onAddBlock
+  onReorderBlocks, isPreviewMode, onAddBlock, onUpdateElement
 }: CanvasAreaProps) {
   const [dimensions, setDimensions] = useState<{w:number;h:number}|null>(null);
   const [draggedId, setDraggedId] = useState<string|null>(null);
@@ -452,8 +453,88 @@ export default function CanvasArea({
           </div>
         )}
 
-        {/* Blocks */}
-        <div className="flex-1 overflow-y-auto" style={{backgroundColor:project.style.background}}>
+        {/* Blocks container */}
+        <div className="flex-1 overflow-y-auto relative" style={{backgroundColor:project.style.background}}
+          onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+          onDrop={e => {
+            try {
+              const dataStr = e.dataTransfer.getData('text/plain');
+              if (dataStr && onUpdateElement) {
+                const data = JSON.parse(dataStr);
+                if (data.id) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const contentContainer = document.getElementById('canvas-content-container');
+                  if (!contentContainer) return;
+                  const rect = contentContainer.getBoundingClientRect();
+                  const x = (e.clientX - rect.left) / (zoom / 100) - data.offsetX;
+                  const y = (e.clientY - rect.top) / (zoom / 100) - data.offsetY;
+                  onUpdateElement(data.id, { x, y });
+                  return;
+                }
+              }
+            } catch (err) {}
+          }}
+        >
+          <div id="canvas-content-container" style={{ position: 'relative', minHeight: '100%' }}>
+            {/* Free-form Elements Overlay */}
+            <div className="absolute inset-0 pointer-events-none z-30">
+              {(project.elements || []).map(el => {
+                const isSel = selection.elementId === el.id;
+                let elStyle: any = {
+                  position: 'absolute',
+                  left: el.x,
+                  top: el.y,
+                  width: el.width,
+                  height: el.height,
+                  pointerEvents: 'auto',
+                  cursor: 'move',
+                  outline: isSel ? '2px solid #18a0fb' : 'none',
+                  zIndex: isSel ? 40 : 30
+                };
+                if (el.type === 'shape') {
+                  elStyle.background = '#18a0fb';
+                  elStyle.borderRadius = '4px';
+                }
+                if (el.type === 'button') {
+                  elStyle.background = '#18a0fb';
+                  elStyle.color = 'white';
+                  elStyle.borderRadius = '4px';
+                  elStyle.display = 'flex';
+                  elStyle.alignItems = 'center';
+                  elStyle.justifyContent = 'center';
+                  elStyle.fontWeight = 'bold';
+                }
+
+                return (
+                  <div key={el.id} style={elStyle}
+                    draggable
+                    onDragStart={e => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      e.dataTransfer.setData('text/plain', JSON.stringify({
+                        id: el.id,
+                        offsetX: (e.clientX - rect.left) / (zoom / 100),
+                        offsetY: (e.clientY - rect.top) / (zoom / 100)
+                      }));
+                    }}
+                    onClick={(e) => { e.stopPropagation(); setSelection({ blockId: null, elementId: el.id }); }}
+                  >
+                    {el.type === 'text' && (
+                      <div
+                        contentEditable={!isPreviewMode}
+                        suppressContentEditableWarning
+                        onBlur={(e) => onUpdateElement && onUpdateElement(el.id, { content: e.currentTarget.textContent || '' })}
+                        style={{ width: '100%', height: '100%', padding: 4, outline: 'none' }}
+                      >
+                        {el.content}
+                      </div>
+                    )}
+                    {el.type === 'button' && <span>{el.content || 'Button'}</span>}
+                    {el.type === 'image' && <div style={{width:'100%',height:'100%',background:'#e5e5e5',border:'1px dashed #999',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#666'}}>Image</div>}
+                  </div>
+                );
+              })}
+            </div>
           {project.blocks.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center" style={{minHeight:400}}>
               <Sparkles className="w-8 h-8 mb-3" style={{color:'#18a0fb',opacity:.5}} />
@@ -487,7 +568,27 @@ export default function CanvasArea({
                     setDragOverIdx(idx);
                     setDragOverPos((e.clientY - rect.top) < rect.height / 2 ? 'top' : 'bottom');
                   }}
-                  onDrop={e => {
+
+                onDrop={e => {
+                  try {
+                    const dataStr = e.dataTransfer.getData('text/plain');
+                    if (dataStr && onUpdateElement) {
+                      const data = JSON.parse(dataStr);
+                      if (data.id) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const contentContainer = document.getElementById('canvas-content-container');
+                        if (!contentContainer) return;
+                        const contentRect = contentContainer.getBoundingClientRect();
+                        const x = (e.clientX - contentRect.left) / (zoom / 100) - data.offsetX;
+                        const y = (e.clientY - contentRect.top) / (zoom / 100) - data.offsetY;
+                        onUpdateElement(data.id, { x, y });
+                        return;
+                      }
+                    }
+                  } catch (err) {}
+                  // Existing block drop logic...
+
                     if (!draggedId || !onReorderBlocks) return;
                     e.preventDefault();
                     const si = project.blocks.findIndex(b => b.id === draggedId);
@@ -564,6 +665,7 @@ export default function CanvasArea({
               );
             })
           )}
+          </div>
         </div>
       </div>
     </div>

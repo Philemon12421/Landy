@@ -86,14 +86,28 @@ export interface Block {
 
 export interface SelectionState {
   blockId: string | null;
-  elementId: 'title' | 'subtitle' | 'brandName' | 'description' | 'primaryBtn' | 'secondaryBtn' | 'image' | 'video' | 'copyright' | 'form' | null;
+  elementId: string | null;
 }
 
 export interface ProjectState {
-  name: string; blocks: Block[]; style: StyleConfig;
+  name: string; blocks: Block[]; style: StyleConfig; elements?: CanvasElement[];
 }
 
 export interface CommunityTemplate {
   id: string; component_name: string; description: string;
   category: string; projectData: ProjectState; createdAt?: string;
+}
+export type ElementType = 'text' | 'image' | 'button' | 'shape' | 'container';
+
+export interface CanvasElement {
+  id: string;
+  type: ElementType;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  content?: string;
+  url?: string;
+  color?: string;
+  fontSize?: number;
 }

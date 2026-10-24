@@ -4,6 +4,7 @@ import { INITIAL_PROJECT, createBlockByType } from './utils/defaultBlocks';
 import TopBar from './components/TopBar';
 import CanvasArea from './components/CanvasArea';
 import RightPropertiesPanel from './components/RightPropertiesPanel';
+import LeftSidebar from './components/LeftSidebar';
 import StatusBar from './components/StatusBar';
 import PublicGalleryModal from './components/PublicGalleryModal';
 import { Globe, Keyboard, X, Check, Share2, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
@@ -78,6 +79,20 @@ export default function App() {
     push({ ...project, blocks: [...project.blocks, b] });
     setSelection({ blockId: id, elementId: null });
     setShowMobilePanel(false);
+  }, [project, push]);
+
+
+  const addElement = useCallback((type: import('./types').ElementType) => {
+    const id = `el-${Date.now()}`;
+    const el: import('./types').CanvasElement = { id, type, x: 100, y: 100, content: type === 'text' ? 'New Text' : '', width: type==='text'?200:100, height: type==='text'?50:100 };
+    push({ ...project, elements: [...(project.elements || []), el] });
+  }, [project, push]);
+
+
+  const updateElement = useCallback((id: string, updated: Partial<import('./types').CanvasElement>) => {
+    if (!project.elements) return;
+    const elements = project.elements.map(el => el.id !== id ? el : { ...el, ...updated });
+    push({ ...project, elements });
   }, [project, push]);
 
   const updateBlock = useCallback((blockId: string, updated: Partial<Block>) => {
@@ -181,6 +196,7 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden min-h-0 relative">
         {/* Desktop left panel */}
+        {!isPreviewMode && <LeftSidebar onAddElement={addElement} onAddBlock={addBlock} />}
         {!isPreviewMode && <div className="hidden md:flex"><Panel /></div>}
 
         {/* Mobile panel overlay */}
@@ -200,7 +216,7 @@ export default function App() {
 
         <CanvasArea project={project} viewport={viewport} zoom={zoom} selection={selection} setSelection={setSelection}
           onUpdateBlock={updateBlock} onDeleteBlock={deleteBlock} onDuplicateBlock={duplicateBlock}
-          onMoveBlock={moveBlock} onReorderBlocks={reorder} isPreviewMode={isPreviewMode} onAddBlock={addBlock} />
+          onMoveBlock={moveBlock} onReorderBlocks={reorder} isPreviewMode={isPreviewMode} onAddBlock={addBlock} onUpdateElement={updateElement} />
       </div>
 
       <StatusBar project={project} onRenameProject={rename} isSaving={isSaving} />
