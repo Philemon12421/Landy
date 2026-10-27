@@ -719,7 +719,7 @@ export default function RightPropertiesPanel({ project, onChangeStyle, selection
         <>
           {/* Top-level tabs */}
           <div style={{display:'flex',borderBottom:'1px solid #3a3a3a',background:'#252525'}}>
-            {([{k:'blocks',icon:PlusCircle,label:'Add'},{k:'layers',icon:Layers,label:'Layers'},{k:'design',icon:Palette,label:'Design'}] as const).map(({k,icon:Icon,label})=>(
+            {([{k:'blocks',icon:PlusCircle,label:'Add'},{k:'design',icon:Palette,label:'Design'}] as const).map(({k,icon:Icon,label})=>(
               <button key={k} onClick={()=>setTab(k as any)} className={`fig-tab flex-1 flex items-center justify-center gap-1 ${tab===k?'active':''}`}>
                 <Icon size={12}/><span>{label}</span>
               </button>
@@ -761,7 +761,7 @@ export default function RightPropertiesPanel({ project, onChangeStyle, selection
                 ))}
               </div>
             )}
-            {tab==='layers'&&renderLayers()}
+
             {tab==='design'&&<div style={{padding:'8px 0'}}>{renderDesign()}</div>}
           </div>
         </>
