@@ -196,8 +196,7 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden min-h-0 relative">
         {/* Desktop left panel */}
-        {!isPreviewMode && <LeftSidebar onAddElement={addElement} onAddBlock={addBlock} />}
-        {!isPreviewMode && <div className="hidden md:flex"><Panel /></div>}
+        {!isPreviewMode && <LeftSidebar project={project} selection={selection} setSelection={setSelection} onMoveBlock={moveBlock} onDeleteBlock={deleteBlock} onAddElement={addElement} onAddBlock={addBlock} />}
 
         {/* Mobile panel overlay */}
         {!isPreviewMode && showMobilePanel && (
@@ -217,6 +216,7 @@ export default function App() {
         <CanvasArea project={project} viewport={viewport} zoom={zoom} selection={selection} setSelection={setSelection}
           onUpdateBlock={updateBlock} onDeleteBlock={deleteBlock} onDuplicateBlock={duplicateBlock}
           onMoveBlock={moveBlock} onReorderBlocks={reorder} isPreviewMode={isPreviewMode} onAddBlock={addBlock} onUpdateElement={updateElement} />
+        {!isPreviewMode && <div className="hidden md:flex panel-chrome-right"><Panel /></div>}
       </div>
 
       <StatusBar project={project} onRenameProject={rename} isSaving={isSaving} />

@@ -218,7 +218,7 @@ input[type='color']::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 6px 12px; margin: 2px 8px; border-radius: 4px;
   cursor: pointer;
   font-size: 11px;
   color: #ccc;
@@ -227,7 +227,7 @@ input[type='color']::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0
   transition: background 0.08s;
 }
 .layer-row:hover { background: #333; }
-.layer-row.selected { background: #18a0fb1a; border-left-color: #18a0fb; color: #fff; }
+.layer-row.selected { background: rgba(24, 160, 251, 0.15); border-radius: 4px; color: #fff; }
 
 /* ── Block card on canvas ─────────────────────────────────── */
 .canvas-block { position: relative; }
@@ -305,12 +305,13 @@ input[type='color']::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0
 
 /* ── Figma tab strip ─────────────────────────────────────── */
 .fig-tab {
-  padding: 6px 10px;
+  margin-bottom: -1px;
+  padding: 8px 10px;
   font-size: 11px;
   font-weight: 500;
   color: #888;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
+  border-bottom: 1px solid transparent;
   transition: color 0.1s, border-color 0.1s;
   white-space: nowrap;
   background: none;
@@ -320,7 +321,7 @@ input[type='color']::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0
   outline: none;
 }
 .fig-tab:hover { color: #ccc; }
-.fig-tab.active { color: #e5e5e5; border-bottom-color: #18a0fb; }
+.fig-tab.active { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 7px; font-weight: 600; }
 
 /* ── Figma property group ────────────────────────────────── */
 .prop-group {
@@ -340,7 +341,7 @@ input[type='color']::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0
   border: 1px solid transparent;
 }
 .block-library-item:hover { background: #333; border-color: #444; }
-.block-library-item:active { background: #18a0fb1a; border-color: #18a0fb44; }
+.block-library-item:active { background: rgba(255, 255, 255, 0.05); border-color: #18a0fb44; }
 
 /* ── Figma-style primary button ─────────────────────────── */
 .fig-btn-primary {
