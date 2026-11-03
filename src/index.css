@@ -1,509 +1,243 @@
 /* ============================================================
-   LANDY – Figma-style UI System v4.0
-   Dark toolbar · Infinite canvas · Floating panels
+   LANDY — 3D design system v5
+   Raised surfaces · inset wells · tactile keys · floating panels
    ============================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&family=Syne:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700;900&display=swap');
 @import "tailwindcss";
 
-/* ── Reset ───────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+/* Tailwind's preflight already resets margins and padding. A second unlayered reset here
+   would override every p-*, m-* and px-* utility, so it has been removed on purpose. */
+html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
-  background: #1e1e1e;
+  background: #16161a;
   color: #e5e5e5;
 }
 #root { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+button { font-family: inherit; }
 
-/* ── Figma-style scrollbars ──────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
-* { scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
+::-webkit-scrollbar-thumb { background: #44444c; border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #5a5a64; background-clip: padding-box; border: 2px solid transparent; }
+* { scrollbar-width: thin; scrollbar-color: #44444c transparent; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { scrollbar-width: none; }
 
-/* ── Figma canvas dot-grid ───────────────────────────────── */
-#landy-canvas {
-  background-color: #1e1e1e;
-  background-image: radial-gradient(circle, #3a3a3a 1px, transparent 1px);
-  background-size: 24px 24px;
-}
+:focus-visible { outline: 2px solid #18a0fb; outline-offset: 2px; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
 
-/* ── Panel chrome — matches Figma left/right rails ───────── */
-.panel-chrome {
-  background: #2c2c2c;
-  border-right: 1px solid #3a3a3a;
-}
-.panel-chrome-right {
-  background: #2c2c2c;
-  border-left: 1px solid #3a3a3a;
-}
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(.96) translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes slideLeft { from { opacity: 0; transform: translateX(10px) } to { opacity: 1; transform: none } }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.55) } 100% { box-shadow: 0 0 0 8px rgba(34,197,94,0) } }
 
-/* ── Figma-style toolbar ─────────────────────────────────── */
-.figma-toolbar {
-  background: #2c2c2c;
-  border-bottom: 1px solid #3a3a3a;
-  height: 48px;
-}
+@layer components {
+  .animate-fade-in { animation: fadeIn .15s ease both; }
+  .animate-scale-in { animation: scaleIn .2s cubic-bezier(.2,.9,.3,1.2) both; }
+  .animate-slide-up { animation: slideUp .2s ease both; }
+  .animate-slide-left { animation: slideLeft .2s ease both; }
+  .animate-spin { animation: spin .8s linear infinite; }
 
-/* ── Figma-style section label ───────────────────────────── */
-.section-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
+  /* ── Stage ─────────────────────────────────────────────── */
+  #landy-canvas {
+    background:
+      radial-gradient(1100px 700px at 50% -10%, rgba(124,58,237,.16), transparent 62%),
+      radial-gradient(900px 700px at 100% 100%, rgba(24,160,251,.10), transparent 62%),
+      #16161a;
+  }
+  .grid-layer { position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(circle, #3b3b46 1px, transparent 1.4px); }
 
-/* ── Property row — matches Figma's dense input rows ─────── */
-.prop-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 0;
-}
+  /* ── Floating 3D panels ────────────────────────────────── */
+  .float-panel {
+    position: absolute; top: 10px; bottom: 10px; width: 240px; z-index: 30; overflow: hidden; border-radius: 14px;
+    background: linear-gradient(180deg, #313136 0%, #28282c 100%);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 rgba(0,0,0,.6), 0 22px 44px -14px rgba(0,0,0,.7), 0 4px 10px rgba(0,0,0,.35);
+    transition: transform .25s ease, opacity .25s ease;
+  }
+  .float-panel.left { left: 10px; }
+  .float-panel.right { right: 10px; }
+  .float-panel .panel-chrome { background: transparent; border: 0; height: 100%; }
+  .panel-chrome { background: linear-gradient(180deg, #2f2f34 0%, #28282c 100%); border-right: 1px solid #3a3a40; }
+  .panel-chrome-right { background: #2c2c2c; border-left: 1px solid #3a3a3a; }
 
-/* ── Figma-style input ───────────────────────────────────── */
-.fig-input {
-  background: #3a3a3a;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  color: #e5e5e5;
-  font-size: 11px;
-  font-family: inherit;
-  padding: 4px 6px;
-  width: 100%;
-  outline: none;
-  transition: border-color 0.12s;
-}
-.fig-input:hover { border-color: #555; }
-.fig-input:focus { border-color: #18a0fb; background: #3a3a3a; }
-.fig-input::placeholder { color: #666; }
+  /* ── Top bar ───────────────────────────────────────────── */
+  .figma-toolbar {
+    height: 52px; position: relative; z-index: 40;
+    background: linear-gradient(180deg, #34343a 0%, #29292e 100%);
+    border-bottom: 1px solid #0c0c0f;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 24px -8px rgba(0,0,0,.6);
+  }
+  .toolbar-sep { width: 1px; height: 24px; margin: 0 6px; flex-shrink: 0; background: linear-gradient(180deg, transparent, #0c0c0f 20%, #0c0c0f 80%, transparent); box-shadow: 1px 0 0 rgba(255,255,255,.06); }
 
-/* ── Figma-style select ──────────────────────────────────── */
-.fig-select {
-  background: #3a3a3a;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  color: #e5e5e5;
-  font-size: 11px;
-  font-family: inherit;
-  padding: 4px 6px;
-  width: 100%;
-  outline: none;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-}
-.fig-select:hover { border-color: #555; }
-.fig-select:focus { border-color: #18a0fb; }
-.fig-select option { background: #2c2c2c; }
+  /* Segmented control: an inset well holding raised keys */
+  .seg { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9px; background: #1d1d21; box-shadow: inset 0 1px 3px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.05); }
+  .seg-btn {
+    display: flex; align-items: center; justify-content: center; gap: 5px; height: 26px; min-width: 28px; padding: 0 8px;
+    border: 0; border-radius: 6px; background: transparent; color: #9a9aa6; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: color .12s, background .12s, box-shadow .12s, transform .12s;
+  }
+  .seg-btn:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,.06); }
+  .seg-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .seg-btn.active {
+    color: #fff; background: linear-gradient(180deg, #4a4a52, #3a3a41);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 1px 0 rgba(0,0,0,.7), 0 3px 6px rgba(0,0,0,.4);
+  }
+  .seg-btn.accent.active { background: linear-gradient(180deg, #38b2ff, #0f8fe6); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 1px 0 #0a5f9c, 0 3px 8px rgba(24,160,251,.4); }
 
-/* ── Figma icon-button ───────────────────────────────────── */
-.fig-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  color: #aaa;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s;
-  flex-shrink: 0;
-}
-.fig-icon-btn:hover { background: #3a3a3a; color: #e5e5e5; }
-.fig-icon-btn.active { background: #18a0fb22; color: #18a0fb; }
-.fig-icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  /* Tactile keys */
+  .btn3d, .fig-btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; height: 30px; border: 0; border-radius: 8px;
+    color: #d8d8de; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    background: linear-gradient(180deg, #4a4a52 0%, #393940 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 1px 0 #0c0c0f, 0 3px 0 #1d1d21, 0 8px 14px -4px rgba(0,0,0,.5);
+    transition: transform .08s, box-shadow .08s, filter .12s;
+  }
+  .btn3d:hover, .fig-btn-secondary:hover { filter: brightness(1.12); color: #fff; }
+  .btn3d:active, .fig-btn-secondary:active { transform: translateY(2px); box-shadow: inset 0 1px 2px rgba(0,0,0,.4), 0 1px 0 #0c0c0f; }
+  .btn3d:disabled { opacity: .45; cursor: not-allowed; }
+  .btn3d-brand, .fig-btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 14px; height: 30px; border: 0; border-radius: 8px;
+    color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    background: linear-gradient(180deg, #43b7ff 0%, #18a0fb 55%, #0d8de0 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.38), 0 1px 0 #0a6fb5, 0 3px 0 #0a5f9c, 0 10px 18px -4px rgba(24,160,251,.55);
+    transition: transform .08s, box-shadow .08s, filter .12s;
+  }
+  .btn3d-brand.violet { background: linear-gradient(180deg, #a07bff 0%, #7c3aed 55%, #5b21b6 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 1px 0 #4c1d95, 0 3px 0 #3b0f78, 0 10px 18px -4px rgba(124,58,237,.6); }
+  .btn3d-brand:hover, .fig-btn-primary:hover { filter: brightness(1.1); }
+  .btn3d-brand:active, .fig-btn-primary:active { transform: translateY(2px); box-shadow: inset 0 1px 2px rgba(0,0,0,.35), 0 1px 0 #0a5f9c; }
+  .btn3d-brand:disabled, .fig-btn-primary:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.3); }
+  .btn3d-danger { background: linear-gradient(180deg, #5a2328, #431a1e); color: #fca5a5; }
 
-/* ── Figma toggle chip (e.g. viewport selectors) ─────────── */
-.fig-chip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #aaa;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s;
-  background: transparent;
-  border: none;
-  white-space: nowrap;
-}
-.fig-chip:hover { background: #3a3a3a; color: #e5e5e5; }
-.fig-chip.active { background: #18a0fb22; color: #18a0fb; }
+  /* Wells (inputs) */
+  .fig-input, .fig-select {
+    width: 100%; padding: 4px 8px; border: 1px solid transparent; border-radius: 6px; outline: none;
+    background: #1f1f23; color: #e8e8ec; font: inherit; font-size: 11px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.05);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .fig-input:hover, .fig-select:hover { border-color: #4a4a54; }
+  .fig-input:focus, .fig-select:focus { border-color: #18a0fb; box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 0 0 3px rgba(24,160,251,.2); }
+  .fig-input::placeholder { color: #666670; }
+  .fig-select { cursor: pointer; -webkit-appearance: none; appearance: none; }
+  .fig-select option { background: #2c2c30; }
+  .num { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 1px solid transparent; border-radius: 6px; background: #1f1f23; box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.05); }
+  .num:focus-within { border-color: #18a0fb; box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 0 0 3px rgba(24,160,251,.2); }
+  .num span { width: 12px; flex-shrink: 0; color: #80808c; font-size: 10px; font-weight: 700; }
+  .num input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #e8e8ec; font: inherit; font-size: 11px; }
+  .num input::-webkit-inner-spin-button { display: none; }
 
-/* ── Divider ──────────────────────────────────────────────── */
-.fig-divider { width: 1px; height: 20px; background: #3a3a3a; flex-shrink: 0; }
-.fig-divider-h { height: 1px; background: #3a3a3a; margin: 8px 0; }
+  .fig-icon-btn {
+    display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: 6px;
+    background: transparent; color: #a6a6b2; cursor: pointer; transition: background .1s, color .1s, box-shadow .1s;
+  }
+  .fig-icon-btn:hover { background: rgba(255,255,255,.07); color: #fff; }
+  .fig-icon-btn.active { background: rgba(24,160,251,.16); color: #43b7ff; box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
+  .fig-icon-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .fig-chip { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: #aaa; font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .fig-chip:hover { background: rgba(255,255,255,.07); color: #fff; }
+  .fig-chip.active { background: rgba(24,160,251,.16); color: #43b7ff; }
 
-/* ── Section toggle header ────────────────────────────────── */
-.fig-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px 6px;
-  cursor: pointer;
-  user-select: none;
-}
-.fig-section-header:hover { background: #333; }
+  .section-label { font-size: 10px; font-weight: 700; color: #8c8c96; text-transform: uppercase; letter-spacing: .08em; }
+  .fig-divider { width: 1px; height: 20px; background: #3a3a40; flex-shrink: 0; }
+  .fig-divider-h { height: 1px; margin: 8px 0; background: #3a3a40; }
+  .fig-section-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px 6px; cursor: pointer; user-select: none; }
+  .fig-section-header:hover { background: rgba(255,255,255,.03); }
+  .prop-group { padding: 10px 12px; border-bottom: 1px solid #3a3a40; }
+  .prop-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
 
-/* ── Color swatch chip ────────────────────────────────────── */
-.color-chip {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  border: 1px solid rgba(255,255,255,0.08);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: transform 0.1s;
-}
-.color-chip:hover { transform: scale(1.15); }
-.color-chip.selected { outline: 2px solid #18a0fb; outline-offset: 1px; }
+  .color-chip { width: 20px; height: 20px; flex-shrink: 0; border: 1px solid rgba(255,255,255,.12); border-radius: 5px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 4px rgba(0,0,0,.35); transition: transform .1s; }
+  .color-chip:hover { transform: translateY(-1px) scale(1.1); }
+  .color-chip.selected { outline: 2px solid #18a0fb; outline-offset: 1px; }
 
-/* ── Range slider — Figma-style thin track ────────────────── */
-input[type='range'] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 2px;
-  border-radius: 99px;
-  background: #3a3a3a;
-  outline: none;
-  cursor: pointer;
-  width: 100%;
-}
-input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #18a0fb;
-  border: 2px solid #1e1e1e;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-  transition: transform 0.1s;
-}
-input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.25); }
-input[type='range']::-moz-range-thumb {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: #18a0fb;
-  border: 2px solid #1e1e1e;
-}
+  .fig-tab {
+    margin-bottom: -1px; padding: 9px 10px; border: 0; border-bottom: 2px solid transparent; background: none; outline: none;
+    color: #8c8c96; font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: color .1s, border-color .1s;
+  }
+  .fig-tab:hover { color: #d0d0d8; }
+  .fig-tab.active { color: #fff; font-weight: 600; border-bottom-color: #18a0fb; }
 
-/* ── Color input ──────────────────────────────────────────── */
-input[type='color'] {
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-  padding: 0; border: none; background: none;
-  border-radius: 3px;
-  overflow: hidden;
-}
-input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
-input[type='color']::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; }
+  .layer-row {
+    display: flex; align-items: center; gap: 6px; margin: 1px 8px; padding: 5px 8px; border-radius: 6px;
+    color: #c8c8d0; font-size: 11px; cursor: pointer; user-select: none; transition: background .08s;
+  }
+  .layer-row:hover { background: rgba(255,255,255,.05); }
+  .layer-row.selected { background: rgba(24,160,251,.18); color: #fff; box-shadow: inset 0 0 0 1px rgba(24,160,251,.35); }
+  .layer-row .layer-actions { opacity: 0; transition: opacity .1s; }
+  .layer-row:hover .layer-actions, .layer-row.selected .layer-actions { opacity: 1; }
+  .block-library-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+  .block-library-item:hover { background: #333; border-color: #444; }
 
-/* ── Layer row ────────────────────────────────────────────── */
-.layer-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px; margin: 2px 8px; border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-  color: #ccc;
-  user-select: none;
-  border-left: 2px solid transparent;
-  transition: background 0.08s;
-}
-.layer-row:hover { background: #333; }
-.layer-row.selected { background: rgba(24, 160, 251, 0.15); border-radius: 4px; color: #fff; }
+  /* Asset tiles lift in 3D on hover */
+  .tile {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 8px; border: 1px solid #3c3c44; border-radius: 9px; cursor: pointer;
+    background: linear-gradient(180deg, #3a3a41, #303036); color: #a6a6b2;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 3px 0 #1d1d21, 0 6px 10px -4px rgba(0,0,0,.5);
+    transition: transform .12s, box-shadow .12s, border-color .12s, color .12s;
+  }
+  .tile:hover { transform: translateY(-2px); border-color: rgba(24,160,251,.5); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 5px 0 #1d1d21, 0 14px 18px -6px rgba(24,160,251,.35); }
+  .tile:active { transform: translateY(1px); box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
+  .tile span { font-size: 10px; font-weight: 500; text-align: center; line-height: 1.2; }
 
-/* ── Block card on canvas ─────────────────────────────────── */
-.canvas-block { position: relative; }
-.canvas-block:hover .block-hover-ring {
-  outline: 1px solid #18a0fb88;
-}
-.canvas-block.selected-block .block-selection-ring {
-  outline: 2px solid #18a0fb;
-}
+  /* ── Canvas chrome ─────────────────────────────────────── */
+  .sel-handle { position: absolute; width: 7px; height: 7px; border: 1.5px solid #18a0fb; border-radius: 1px; background: #fff; }
+  .fig-label-tag { position: absolute; top: 0; left: 0; z-index: 40; padding: 3px 8px; border-radius: 0 0 6px 0; background: #18a0fb; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 10px rgba(24,160,251,.4); }
+  .drop-indicator { position: absolute; left: 0; right: 0; z-index: 50; height: 3px; background: #18a0fb; pointer-events: none; box-shadow: 0 0 10px rgba(24,160,251,.8); }
+  .drop-indicator::before { content: ''; position: absolute; left: 0; top: -3px; width: 9px; height: 9px; border-radius: 50%; background: #18a0fb; }
+  .cb:hover { outline: 1px solid rgba(24,160,251,.55); outline-offset: -1px; }
+  .landy-el:hover { outline: 1px solid rgba(24,160,251,.7); }
+  [contenteditable]:focus { outline: none; background: rgba(24,160,251,.07); border-radius: 3px; }
 
-/* ── Selection handles ────────────────────────────────────── */
-.sel-handle {
-  position: absolute;
-  width: 7px; height: 7px;
-  background: #fff;
-  border: 1.5px solid #18a0fb;
-  border-radius: 1px;
-}
+  .frame-label { position: absolute; left: 0; top: -26px; font-size: 12px; font-weight: 600; color: #8a8a96; white-space: nowrap; letter-spacing: .01em; }
+  .frame { position: relative; background: #fff; overflow: clip; }
+  .device-frame-laptop {
+    box-sizing: content-box; border-radius: 12px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.1), inset 0 1px 0 rgba(255,255,255,.4), 0 50px 90px -30px rgba(0,0,0,.85), 0 18px 34px rgba(0,0,0,.4);
+  }
+  .device-frame-mobile, .device-frame-tablet {
+    box-sizing: content-box; border: 14px solid #0b0b0d; background: #0b0b0d;
+    box-shadow: 0 0 0 2px #34343b, 0 0 0 3px #0b0b0d, inset 0 0 0 1px rgba(255,255,255,.08), 0 50px 90px -26px rgba(0,0,0,.9), 0 20px 40px rgba(0,0,0,.45);
+  }
+  .device-frame-mobile { border-radius: 52px; }
+  .device-frame-tablet { border-radius: 30px; }
+  .device-frame-mobile::before { content: ''; position: absolute; top: 9px; left: 50%; z-index: 70; width: 92px; height: 26px; margin-left: -46px; border-radius: 99px; background: #050506; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); pointer-events: none; }
+  .device-frame-mobile::after, .device-frame-tablet::after { content: ''; position: absolute; inset: 0; z-index: 60; border-radius: inherit; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.09) 0%, transparent 32%); }
+  .frame-chrome { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; background: linear-gradient(180deg, #ececf0, #dcdce2); border-bottom: 1px solid #c3c3cc; }
+  .frame-chrome .dot { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 -1px 1px rgba(0,0,0,.25), inset 0 1px 1px rgba(255,255,255,.5); }
+  .frame-chrome .url { flex: 1; max-width: 420px; margin: 0 auto; padding: 4px 12px; border-radius: 7px; background: #fff; color: #6b6b78; font-size: 11px; text-align: center; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ── Figma-style tooltip label ────────────────────────────── */
-.fig-label-tag {
-  position: absolute;
-  top: -22px; left: 0;
-  background: #18a0fb;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px 3px 3px 0;
-  white-space: nowrap;
-  pointer-events: none;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
+  .float-chip { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 12px; background: linear-gradient(180deg, #36363c, #2a2a2f); border: 1px solid rgba(255,255,255,.08); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 28px -8px rgba(0,0,0,.7), 0 2px 6px rgba(0,0,0,.4); }
+  .block-toolbar { display: flex; align-items: center; gap: 1px; padding: 2px; border-radius: 8px; background: rgba(18,18,22,.88); backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 8px 18px rgba(0,0,0,.45); }
 
-/* ── Drop indicator ──────────────────────────────────────────*/
-.drop-indicator {
-  height: 2px;
-  background: #18a0fb;
-  position: absolute; left: 0; right: 0;
-  z-index: 50;
-  pointer-events: none;
-}
-.drop-indicator::before {
-  content: '';
-  position: absolute;
-  left: 0; top: -3px;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: #18a0fb;
-}
+  /* ── Overlays ──────────────────────────────────────────── */
+  .fig-tooltip { position: absolute; bottom: calc(100% + 6px); left: 50%; z-index: 99; padding: 4px 8px; border: 1px solid #3a3a40; border-radius: 6px; background: #1a1a1d; color: #e5e5e5; font-size: 10px; font-weight: 500; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateX(-50%); transition: opacity .15s; }
+  .has-tooltip:hover .fig-tooltip { opacity: 1; }
+  .zoom-display { min-width: 40px; color: #b0b0ba; font-size: 11px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+  .fig-toast { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid rgba(255,255,255,.09); border-radius: 10px; background: linear-gradient(180deg, #34343a, #29292e); color: #ececf0; font-size: 11px; font-weight: 500; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 16px 32px -8px rgba(0,0,0,.7); animation: slideUp .2s ease both; }
+  .fig-modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(800px 500px at 50% 40%, rgba(124,58,237,.14), rgba(0,0,0,.78)); backdrop-filter: blur(6px); animation: fadeIn .15s ease both; }
+  .fig-modal { overflow: hidden; border: 1px solid rgba(255,255,255,.09); border-radius: 14px; background: linear-gradient(180deg, #313136, #28282c); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 40px 90px -20px rgba(0,0,0,.9), 0 10px 24px rgba(0,0,0,.5); animation: scaleIn .22s cubic-bezier(.2,.9,.3,1.2) both; }
+  .fig-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #1c1c20; background: linear-gradient(180deg, #2c2c31, #26262a); box-shadow: 0 1px 0 rgba(255,255,255,.04); }
+  .kbd { display: inline-flex; align-items: center; padding: 2px 6px; border: 1px solid #1c1c20; border-radius: 5px; background: linear-gradient(180deg, #46464e, #36363c); color: #c8c8d0; font-family: ui-monospace, monospace; font-size: 10px; white-space: nowrap; box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 2px 0 #1c1c20; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulseRing 1.8s ease-out infinite; }
+  .name-input { width: 190px; height: 28px; padding: 0 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #ececf0; font: inherit; font-size: 13px; font-weight: 600; text-align: center; outline: none; transition: all .12s; }
+  .name-input:hover { background: rgba(255,255,255,.05); }
+  .name-input:focus { background: #1f1f23; border-color: #18a0fb; box-shadow: inset 0 1px 3px rgba(0,0,0,.6); }
 
-/* ── contenteditable focus ────────────────────────────────── */
-[contenteditable]:focus {
-  outline: none;
-  background: rgba(24, 160, 251, 0.06) !important;
-  border-radius: 2px;
-}
+  .panel-chrome-right .panel-chrome { border-right: 0; }
 
-/* ── Animations ───────────────────────────────────────────── */
-@keyframes fadeIn    { from { opacity:0 } to { opacity:1 } }
-@keyframes scaleIn   { from { opacity:0; transform:scale(.97) } to { opacity:1; transform:scale(1) } }
-@keyframes slideUp   { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
-@keyframes slideLeft { from { opacity:0; transform:translateX(8px) } to { opacity:1; transform:translateX(0) } }
-@keyframes spin      { to { transform: rotate(360deg) } }
-
-.animate-fade-in    { animation: fadeIn  .15s ease both; }
-.animate-scale-in   { animation: scaleIn .18s ease both; }
-.animate-slide-up   { animation: slideUp .18s ease both; }
-.animate-slide-left { animation: slideLeft .2s ease both; }
-.animate-spin       { animation: spin 0.8s linear infinite; }
-
-/* ── Figma toolbar separator ─────────────────────────────── */
-.toolbar-sep { width: 1px; height: 24px; background: #3a3a3a; margin: 0 4px; flex-shrink: 0; }
-
-/* ── Figma tab strip ─────────────────────────────────────── */
-.fig-tab {
-  margin-bottom: -1px;
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #888;
-  cursor: pointer;
-  border-bottom: 1px solid transparent;
-  transition: color 0.1s, border-color 0.1s;
-  white-space: nowrap;
-  background: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  outline: none;
-}
-.fig-tab:hover { color: #ccc; }
-.fig-tab.active { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 7px; font-weight: 600; }
-
-/* ── Figma property group ────────────────────────────────── */
-.prop-group {
-  padding: 10px 12px;
-  border-bottom: 1px solid #3a3a3a;
-}
-
-/* ── Block card in sidebar library ──────────────────────── */
-.block-library-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.1s;
-  border: 1px solid transparent;
-}
-.block-library-item:hover { background: #333; border-color: #444; }
-.block-library-item:active { background: rgba(255, 255, 255, 0.05); border-color: #18a0fb44; }
-
-/* ── Figma-style primary button ─────────────────────────── */
-.fig-btn-primary {
-  background: #18a0fb;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 7px 14px;
-  cursor: pointer;
-  transition: background 0.1s, transform 0.1s;
-  font-family: inherit;
-  outline: none;
-}
-.fig-btn-primary:hover { background: #0d8de0; }
-.fig-btn-primary:active { transform: scale(0.98); }
-.fig-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ── Figma-style secondary button ───────────────────────── */
-.fig-btn-secondary {
-  background: #3a3a3a;
-  color: #ccc;
-  border: none;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 7px 14px;
-  cursor: pointer;
-  transition: background 0.1s;
-  font-family: inherit;
-  outline: none;
-}
-.fig-btn-secondary:hover { background: #444; color: #e5e5e5; }
-
-/* ── Tooltip ─────────────────────────────────────────────── */
-.fig-tooltip {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1a1a1a;
-  color: #e5e5e5;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-  pointer-events: none;
-  border: 1px solid #3a3a3a;
-  z-index: 99;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.has-tooltip:hover .fig-tooltip { opacity: 1; }
-
-/* ── Zoom controls ────────────────────────────────────────── */
-.zoom-display {
-  font-size: 11px;
-  font-weight: 500;
-  color: #aaa;
-  min-width: 40px;
-  text-align: center;
-  cursor: default;
-}
-
-/* ── Mobile panel overlay ────────────────────────────────── */
-@media (max-width: 768px) {
-  .panel-chrome, .panel-chrome-right { display: none; }
-  .mobile-panel-overlay { display: flex !important; }
-  #landy-canvas { padding: 8px; }
-}
-
-/* ── Frame device border ─────────────────────────────────── */
-.device-frame-mobile {
-  background: #111;
-  border: 12px solid #111;
-  border-radius: 32px;
-  box-shadow: 0 0 0 1px #444, 0 30px 80px rgba(0,0,0,0.7);
-}
-.device-frame-tablet {
-  background: #111;
-  border: 12px solid #111;
-  border-radius: 20px;
-  box-shadow: 0 0 0 1px #444, 0 20px 60px rgba(0,0,0,0.6);
-}
-.device-frame-laptop {
-  background: #fff;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-}
-
-/* ── Toast ───────────────────────────────────────────────── */
-.fig-toast {
-  background: #2c2c2c;
-  border: 1px solid #3a3a3a;
-  color: #e5e5e5;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  animation: slideUp 0.2s ease both;
-  pointer-events: auto;
-}
-
-/* ── Modal backdrop ──────────────────────────────────────── */
-.fig-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-.fig-modal {
-  background: #2c2c2c;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.8);
-  animation: scaleIn 0.18s ease both;
-  overflow: hidden;
-}
-.fig-modal-header {
-  background: #252525;
-  border-bottom: 1px solid #3a3a3a;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* ── Keyboard shortcut badge ─────────────────────────────── */
-.kbd {
-  display: inline-flex;
-  align-items: center;
-  background: #3a3a3a;
-  border: 1px solid #555;
-  border-radius: 3px;
-  padding: 1px 5px;
-  font-size: 10px;
-  font-family: monospace;
-  color: #aaa;
-  white-space: nowrap;
-}
-
-/* ── Preview mode ────────────────────────────────────────── */
-#preview-viewport section,
-#preview-viewport nav,
-#preview-viewport footer,
-#preview-viewport div[data-block] {
-  animation: fadeIn 0.3s ease both;
-}
-
-/* ── Print ───────────────────────────────────────────────── */
-@media print {
-  .figma-toolbar, .panel-chrome, .panel-chrome-right, .fig-toast { display: none !important; }
+  @media (max-width: 767px) {
+    .float-panel { display: none; }
+  }
+  @media print {
+    .figma-toolbar, .float-panel, .fig-toast, .float-chip { display: none !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
 }
