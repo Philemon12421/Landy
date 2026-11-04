@@ -1,149 +1,173 @@
 import React, { useState } from 'react';
-import { Type, Image as ImageIcon, Sparkles, LayoutTemplate, Square, Circle, Minus, Box, Layers, ArrowUp, ArrowDown, Trash2, Search, Component, Palette, Navigation, ToggleRight, TrendingUp, SquareEqual, MessageSquare, CreditCard, HelpCircle, Users, Grid, Mail, PlayCircle, Minimize } from 'lucide-react';
-import { ElementType, BlockType, ProjectState, SelectionState } from '../types';
+import {
+  ArrowDown, ArrowUp, Box, Circle, Component, CreditCard, Eye, EyeOff, HelpCircle, Image as ImageIcon, LayoutTemplate, Layers, Lock, Mail,
+  Minimize, Minus, MessageSquare, Navigation, PlayCircle, Search, Sparkles, Square, SquareEqual, ToggleRight, Trash2, TrendingUp, Type, Unlock, Users, Grid,
+} from 'lucide-react';
+import { BlockType, CanvasElement, ProjectState, SelectionState } from '../types';
+import { ElementKind } from '../utils/elements';
 
-interface LeftSidebarProps {
+interface Props {
   project: ProjectState;
   selection: SelectionState;
   setSelection: (s: SelectionState) => void;
+  onUpdateBlock: (id: string, patch: Record<string, unknown>) => void;
+  onUpdateElement: (id: string, patch: Partial<CanvasElement>) => void;
   onMoveBlock: (id: string, dir: 'up' | 'down') => void;
   onDeleteBlock: (id: string) => void;
-  onAddElement: (type: ElementType) => void;
+  onDeleteElement: (id: string) => void;
+  onReorderElement: (id: string, dir: 'forward' | 'backward') => void;
+  onAddElement: (kind: ElementKind) => void;
   onAddBlock: (type: BlockType) => void;
 }
 
-const ELEMENTS = [
-  { type: 'text'      as ElementType, label: 'Text',      icon: Type },
-  { type: 'image'     as ElementType, label: 'Image',     icon: ImageIcon },
-  { type: 'button'    as ElementType, label: 'Button',    icon: Sparkles },
-  { type: 'shape'     as ElementType, label: 'Rectangle', icon: Square },
-  { type: 'shape'     as ElementType, label: 'Circle',    icon: Circle },
-  { type: 'shape'     as ElementType, label: 'Line',      icon: Minus },
-  { type: 'container' as ElementType, label: 'Container', icon: Box },
+const ELEMENTS: { kind: ElementKind; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+  { kind: 'text', label: 'Text', icon: Type },
+  { kind: 'image', label: 'Image', icon: ImageIcon },
+  { kind: 'button', label: 'Button', icon: Sparkles },
+  { kind: 'rect', label: 'Rectangle', icon: Square },
+  { kind: 'ellipse', label: 'Ellipse', icon: Circle },
+  { kind: 'line', label: 'Line', icon: Minus },
+  { kind: 'container', label: 'Container', icon: Box },
 ];
 
-const BLOCKS = [
-  { type: 'navbar'       as BlockType, label: 'Navbar',         icon: Navigation,     cat: 'Layout' },
-  { type: 'footer'       as BlockType, label: 'Footer',         icon: ToggleRight,    cat: 'Layout' },
-  { type: 'hero_section' as BlockType, label: 'Hero',           icon: LayoutTemplate, cat: 'Sections' },
-  { type: 'text_block'   as BlockType, label: 'Text',           icon: Type,           cat: 'Sections', isNew: true },
-  { type: 'stats_block'  as BlockType, label: 'Stats',          icon: TrendingUp,     cat: 'Sections', isNew: true },
-  { type: 'features_grid'as BlockType, label: 'Features',       icon: SquareEqual,    cat: 'Sections' },
-  { type: 'testimonials' as BlockType, label: 'Testimonials',   icon: MessageSquare,  cat: 'Sections' },
-  { type: 'pricing_cards'as BlockType, label: 'Pricing',        icon: CreditCard,     cat: 'Sections' },
-  { type: 'faq_block'    as BlockType, label: 'FAQ',            icon: HelpCircle,     cat: 'Sections', isNew: true },
-  { type: 'team_block'   as BlockType, label: 'Team',           icon: Users,          cat: 'Sections', isNew: true },
-  { type: 'logo_bar'     as BlockType, label: 'Logo Bar',       icon: Grid,           cat: 'Sections', isNew: true },
-  { type: 'cta_block'    as BlockType, label: 'CTA',            icon: Sparkles,       cat: 'Sections' },
-  { type: 'contact_form' as BlockType, label: 'Form',           icon: Mail,           cat: 'Sections' },
-  { type: 'image_block'  as BlockType, label: 'Image',          icon: ImageIcon,      cat: 'Media' },
-  { type: 'video_embed'  as BlockType, label: 'Video',          icon: PlayCircle,     cat: 'Media' },
-  { type: 'divider'      as BlockType, label: 'Divider',        icon: Minimize,       cat: 'Utility' },
-  { type: 'spacer'       as BlockType, label: 'Spacer',         icon: Layers,         cat: 'Utility' },
+const BLOCKS: { type: BlockType; label: string; icon: React.ComponentType<{ size?: number }>; cat: string; isNew?: boolean }[] = [
+  { type: 'navbar', label: 'Navbar', icon: Navigation, cat: 'Layout' },
+  { type: 'footer', label: 'Footer', icon: ToggleRight, cat: 'Layout' },
+  { type: 'hero_section', label: 'Hero', icon: LayoutTemplate, cat: 'Sections' },
+  { type: 'text_block', label: 'Text', icon: Type, cat: 'Sections' },
+  { type: 'stats_block', label: 'Stats', icon: TrendingUp, cat: 'Sections' },
+  { type: 'features_grid', label: 'Features', icon: SquareEqual, cat: 'Sections' },
+  { type: 'testimonials', label: 'Reviews', icon: MessageSquare, cat: 'Sections' },
+  { type: 'pricing_cards', label: 'Pricing', icon: CreditCard, cat: 'Sections' },
+  { type: 'faq_block', label: 'FAQ', icon: HelpCircle, cat: 'Sections' },
+  { type: 'team_block', label: 'Team', icon: Users, cat: 'Sections' },
+  { type: 'logo_bar', label: 'Logos', icon: Grid, cat: 'Sections' },
+  { type: 'cta_block', label: 'CTA', icon: Sparkles, cat: 'Sections' },
+  { type: 'contact_form', label: 'Form', icon: Mail, cat: 'Sections' },
+  { type: 'image_block', label: 'Image', icon: ImageIcon, cat: 'Media' },
+  { type: 'video_embed', label: 'Video', icon: PlayCircle, cat: 'Media' },
+  { type: 'divider', label: 'Divider', icon: Minimize, cat: 'Utility' },
+  { type: 'spacer', label: 'Spacer', icon: Layers, cat: 'Utility' },
 ];
 
-export default function LeftSidebar({ project, selection, setSelection, onMoveBlock, onDeleteBlock, onAddElement, onAddBlock }: LeftSidebarProps) {
+const elementIcon = (el: CanvasElement) => {
+  if (el.type === 'text') return Type;
+  if (el.type === 'image') return ImageIcon;
+  if (el.type === 'button') return Sparkles;
+  if (el.type === 'container') return Box;
+  return el.shape === 'ellipse' ? Circle : el.shape === 'line' ? Minus : Square;
+};
+
+function LayerRow({ icon: Icon, name, selected, hidden, locked, onClick, onRename, onToggleHidden, onToggleLock, children }: {
+  icon: React.ComponentType<{ size?: number }>; name: string; selected: boolean; hidden?: boolean; locked?: boolean;
+  onClick: () => void; onRename: (n: string) => void; onToggleHidden: () => void; onToggleLock?: () => void; children?: React.ReactNode;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const commit = () => { const t = draft.trim(); if (t && t !== name) onRename(t); setEditing(false); };
+  return (
+    <div className={`layer-row ${selected ? 'selected' : ''}`} onClick={onClick} style={{ opacity: hidden ? 0.45 : 1 }}>
+      <Icon size={12} />
+      {editing ? (
+        <input autoFocus value={draft} maxLength={40} onChange={e => setDraft(e.target.value)} onBlur={commit} onClick={e => e.stopPropagation()}
+          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }} className="fig-input" style={{ height: 20, padding: '0 4px' }} />
+      ) : (
+        <span title="Double-click to rename" onDoubleClick={() => { setDraft(name); setEditing(true); }} style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+      )}
+      <div className="layer-actions" style={{ display: 'flex', alignItems: 'center' }}>
+        {children}
+        {onToggleLock && <button className="fig-icon-btn" style={{ width: 20, height: 20 }} title={locked ? 'Unlock' : 'Lock'} onClick={e => { e.stopPropagation(); onToggleLock(); }}>{locked ? <Lock size={10} /> : <Unlock size={10} />}</button>}
+        <button className="fig-icon-btn" style={{ width: 20, height: 20 }} title={hidden ? 'Show' : 'Hide'} onClick={e => { e.stopPropagation(); onToggleHidden(); }}>{hidden ? <EyeOff size={10} /> : <Eye size={10} />}</button>
+      </div>
+    </div>
+  );
+}
+
+export default function LeftSidebar(p: Props) {
   const [tab, setTab] = useState<'layers' | 'assets'>('layers');
   const [search, setSearch] = useState('');
-
-  const filteredBlocks = BLOCKS.filter(b =>
-    b.label.toLowerCase().includes(search.toLowerCase()) ||
-    b.cat.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const filteredElements = ELEMENTS.filter(e =>
-    e.label.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const cats = [...new Set(filteredBlocks.map(b => b.cat))];
+  const q = search.trim().toLowerCase();
+  const blocks = BLOCKS.filter(b => !q || b.label.toLowerCase().includes(q) || b.cat.toLowerCase().includes(q));
+  const elements = ELEMENTS.filter(e => !q || e.label.toLowerCase().includes(q));
+  const cats = [...new Set(blocks.map(b => b.cat))];
+  const els = p.project.elements || [];
+  const iconBtn = { width: 20, height: 20 } as const;
 
   return (
-    <div className="panel-chrome flex flex-col h-full select-none z-40 relative" style={{ width: 240, minWidth: 240, maxWidth: 240 }}>
-      {/* Top-level tabs */}
-      <div style={{display:'flex',borderBottom:'1px solid #3a3a3a',background:'#252525'}}>
-        {([{k:'layers',icon:Layers,label:'Layers'},{k:'assets',icon:Component,label:'Assets'}] as const).map(({k,icon:Icon,label})=>(
-          <button key={k} onClick={()=>setTab(k as any)} className={`fig-tab flex-1 flex items-center justify-center gap-1 ${tab===k?'active':''}`}>
-            <Icon size={12}/><span>{label}</span>
-          </button>
+    <div className="panel-chrome flex h-full select-none flex-col">
+      <div style={{ display: 'flex', borderBottom: '1px solid #1c1c20', background: 'rgba(0,0,0,.18)' }}>
+        {([{ k: 'layers', icon: Layers, label: 'Layers' }, { k: 'assets', icon: Component, label: 'Assets' }] as const).map(({ k, icon: Icon, label }) => (
+          <button key={k} onClick={() => setTab(k)} className={`fig-tab flex flex-1 items-center justify-center gap-1 ${tab === k ? 'active' : ''}`}><Icon size={12} />{label}</button>
         ))}
       </div>
 
       {tab === 'assets' && (
-        <div style={{padding:'8px 10px',borderBottom:'1px solid #3a3a3a'}}>
-          <div style={{position:'relative'}}>
-            <Search size={11} style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',color:'#555'}} />
-            <input type="text" placeholder="Search components..." value={search} onChange={e=>setSearch(e.target.value)} className="fig-input w-full" style={{paddingLeft:26,fontSize:11,height:28}} />
+        <div style={{ padding: '8px 10px', borderBottom: '1px solid #1c1c20' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={11} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
+            <input type="text" placeholder="Search assets…" value={search} onChange={e => setSearch(e.target.value)} className="fig-input" style={{ paddingLeft: 26, height: 28 }} />
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-3">
         {tab === 'layers' && (
           <div>
-            {project.blocks.length === 0 ? (
-              <div style={{textAlign:'center',padding:'32px 16px',color:'#555'}}>
-                <Layers size={28} style={{margin:'0 auto 8px',opacity:.4}} />
-                <p style={{fontSize:12,fontWeight:500}}>No blocks on canvas</p>
-              </div>
-            ) : (
-              project.blocks.map((blk, idx) => (
-                <div key={blk.id} onClick={()=>setSelection({blockId:blk.id,elementId:null})}
-                  className={`layer-row group ${selection.blockId===blk.id?'selected':''}`}>
-                  <div style={{width:12,height:12,borderRadius:2,backgroundColor:blk.styles.bgColor,border:'1px solid rgba(255,255,255,.1)',flexShrink:0}} />
-                  <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:11}}>{blk.name}</span>
-                  <div className="layer-actions flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button disabled={idx===0} onClick={e=>{e.stopPropagation();onMoveBlock(blk.id,'up');}} className="fig-icon-btn" style={{width:20,height:20}}><ArrowUp size={10}/></button>
-                    <button disabled={idx===project.blocks.length-1} onClick={e=>{e.stopPropagation();onMoveBlock(blk.id,'down');}} className="fig-icon-btn" style={{width:20,height:20}}><ArrowDown size={10}/></button>
-                    <button onClick={e=>{e.stopPropagation();onDeleteBlock(blk.id);}} className="fig-icon-btn" style={{width:20,height:20,color:'#ef4444'}}><Trash2 size={10}/></button>
-                  </div>
-                </div>
-              ))
-            )}
+            <div style={{ padding: '10px 14px 4px' }} className="section-label">Page · {p.project.blocks.length} sections</div>
+            {p.project.blocks.length === 0 && <p style={{ padding: '14px 14px', fontSize: 11, color: '#666' }}>No sections yet. Open the Assets tab to add one.</p>}
+            {p.project.blocks.map((b, i) => (
+              <LayerRow key={b.id} icon={LayoutTemplate} name={b.name} selected={p.selection.blockId === b.id} hidden={b.hidden}
+                onClick={() => p.setSelection({ blockId: b.id, elementId: null })}
+                onRename={n => p.onUpdateBlock(b.id, { name: n })}
+                onToggleHidden={() => p.onUpdateBlock(b.id, { hidden: !b.hidden })}>
+                <button className="fig-icon-btn" style={iconBtn} disabled={i === 0} title="Move up" onClick={e => { e.stopPropagation(); p.onMoveBlock(b.id, 'up'); }}><ArrowUp size={10} /></button>
+                <button className="fig-icon-btn" style={iconBtn} disabled={i === p.project.blocks.length - 1} title="Move down" onClick={e => { e.stopPropagation(); p.onMoveBlock(b.id, 'down'); }}><ArrowDown size={10} /></button>
+                <button className="fig-icon-btn" style={{ ...iconBtn, color: '#f87171' }} title="Delete" onClick={e => { e.stopPropagation(); p.onDeleteBlock(b.id); }}><Trash2 size={10} /></button>
+              </LayerRow>
+            ))}
+
+            <div style={{ padding: '14px 14px 4px' }} className="section-label">Free-form · {els.length}</div>
+            {els.length === 0 && <p style={{ padding: '2px 14px', fontSize: 11, color: '#666' }}>Press T or R and drag on the canvas, or add from Assets.</p>}
+            {[...els].reverse().map((el, ri) => {
+              const i = els.length - 1 - ri;
+              return (
+                <LayerRow key={el.id} icon={elementIcon(el)} name={el.name || el.type} selected={p.selection.elementId === el.id} hidden={el.hidden} locked={el.locked}
+                  onClick={() => p.setSelection({ blockId: null, elementId: el.id })}
+                  onRename={n => p.onUpdateElement(el.id, { name: n })}
+                  onToggleHidden={() => p.onUpdateElement(el.id, { hidden: !el.hidden })}
+                  onToggleLock={() => p.onUpdateElement(el.id, { locked: !el.locked })}>
+                  <button className="fig-icon-btn" style={iconBtn} disabled={i === els.length - 1} title="Bring forward" onClick={e => { e.stopPropagation(); p.onReorderElement(el.id, 'forward'); }}><ArrowUp size={10} /></button>
+                  <button className="fig-icon-btn" style={iconBtn} disabled={i === 0} title="Send backward" onClick={e => { e.stopPropagation(); p.onReorderElement(el.id, 'backward'); }}><ArrowDown size={10} /></button>
+                  <button className="fig-icon-btn" style={{ ...iconBtn, color: '#f87171' }} title="Delete" onClick={e => { e.stopPropagation(); p.onDeleteElement(el.id); }}><Trash2 size={10} /></button>
+                </LayerRow>
+              );
+            })}
           </div>
         )}
 
         {tab === 'assets' && (
           <div>
-            {filteredElements.length > 0 && (
-              <div>
-                <div style={{padding:'8px 12px 4px',fontSize:10,fontWeight:700,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em'}}>Elements</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,padding:'0 8px 8px'}}>
-                  {filteredElements.map(opt=>{
-                    const Icon=opt.icon;
-                    return (
-                      <button key={opt.type} onClick={()=>onAddElement(opt.type)}
-                        style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 4px',borderRadius:6,border:'1px solid #3a3a3a',background:'#333',cursor:'pointer',transition:'all .1s',position:'relative'}}
-                        onMouseEnter={e=>{e.currentTarget.style.background='#18a0fb22';e.currentTarget.style.borderColor='#18a0fb44';}}
-                        onMouseLeave={e=>{e.currentTarget.style.background='#333';e.currentTarget.style.borderColor='#3a3a3a';}}>
-                        <Icon size={16} style={{color:'#888'}} />
-                        <span style={{fontSize:10,color:'#aaa',fontWeight:500,textAlign:'center',lineHeight:1.2}}>{opt.label}</span>
-                      </button>
-                    );
-                  })}
+            {elements.length > 0 && (
+              <>
+                <div style={{ padding: '10px 14px 6px' }} className="section-label">Elements</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7, padding: '0 10px 8px' }}>
+                  {elements.map(({ kind, label, icon: Icon }) => (
+                    <button key={kind} className="tile" onClick={() => p.onAddElement(kind)}><Icon size={16} /><span>{label}</span></button>
+                  ))}
                 </div>
-              </div>
+              </>
             )}
-
-            {cats.map(cat=>(
+            {cats.map(cat => (
               <div key={cat}>
-                <div style={{padding:'8px 12px 4px',fontSize:10,fontWeight:700,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em'}}>{cat}</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,padding:'0 8px 8px'}}>
-                  {filteredBlocks.filter(b=>b.cat===cat).map(opt=>{
-                    const Icon=opt.icon;
-                    return (
-                      <button key={opt.type} onClick={()=>onAddBlock(opt.type)}
-                        style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 4px',borderRadius:6,border:'1px solid #3a3a3a',background:'#333',cursor:'pointer',transition:'all .1s',position:'relative'}}
-                        onMouseEnter={e=>{e.currentTarget.style.background='#18a0fb22';e.currentTarget.style.borderColor='#18a0fb44';}}
-                        onMouseLeave={e=>{e.currentTarget.style.background='#333';e.currentTarget.style.borderColor='#3a3a3a';}}>
-                        {(opt as any).isNew&&<span style={{position:'absolute',top:3,right:3,fontSize:7,fontWeight:800,background:'#10b981',color:'#fff',padding:'1px 3px',borderRadius:2,textTransform:'uppercase'}}>NEW</span>}
-                        <Icon size={16} style={{color:'#888'}} />
-                        <span style={{fontSize:10,color:'#aaa',fontWeight:500,textAlign:'center',lineHeight:1.2}}>{opt.label}</span>
-                      </button>
-                    );
-                  })}
+                <div style={{ padding: '10px 14px 6px' }} className="section-label">{cat}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7, padding: '0 10px 8px' }}>
+                  {blocks.filter(b => b.cat === cat).map(({ type, label, icon: Icon }) => (
+                    <button key={type} className="tile" onClick={() => p.onAddBlock(type)}><Icon size={16} /><span>{label}</span></button>
+                  ))}
                 </div>
               </div>
             ))}
+            {elements.length === 0 && blocks.length === 0 && <p style={{ padding: 16, fontSize: 11, color: '#666', textAlign: 'center' }}>Nothing matches “{search}”.</p>}
           </div>
         )}
       </div>
