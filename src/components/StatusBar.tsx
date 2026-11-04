@@ -1,87 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { ProjectState } from '../types';
-import { CheckCircle2, Loader2, Cpu, Database, Circle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
+import { ProjectState, SelectionState } from '../types';
 
-interface StatusBarProps {
-  project: ProjectState;
-  onRenameProject: (name: string) => void;
-  isSaving: boolean;
-}
+interface Props { project: ProjectState; isSaving: boolean; lastSaved: Date | null; zoom: number; selection: SelectionState; }
 
-export default function StatusBar({ project, onRenameProject, isSaving }: StatusBarProps) {
-  const [fileSize, setFileSize] = useState('0 KB');
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(project.name);
+const formatSize = (bytes: number) => (bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(2)} MB`);
 
-  useEffect(() => { setDraft(project.name); }, [project.name]);
-
+export default function StatusBar({ project, isSaving, lastSaved, zoom, selection }: Props) {
+  const [size, setSize] = useState('0 B');
   useEffect(() => {
-    const bytes = JSON.stringify(project).length;
-    setFileSize(bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes/1024).toFixed(1)} KB` : `${(bytes/1048576).toFixed(2)} MB`);
+    const t = setTimeout(() => setSize(formatSize(new Blob([JSON.stringify(project)]).size)), 400);
+    return () => clearTimeout(t);
   }, [project]);
 
-  const commit = () => {
-    const t = draft.trim();
-    if (t) onRenameProject(t); else setDraft(project.name);
-    setIsEditing(false);
-  };
+  const selected = selection.blockId ? project.blocks.find(b => b.id === selection.blockId)?.name : selection.elementId ? (project.elements || []).find(e => e.id === selection.elementId)?.name || 'Layer' : null;
+  const stat = (label: string, value: string | number) => <span style={{ fontSize: 10 }}><span style={{ color: '#5c5c66' }}>{label} </span><span style={{ color: '#9a9aa6', fontWeight: 600 }}>{value}</span></span>;
 
   return (
-    <div className="shrink-0 flex items-center justify-between px-3 select-none"
-      style={{ height: 28, background: '#1a1a1a', borderTop: '1px solid #2a2a2a', fontSize: 11, color: '#666' }}>
-
-      {/* Left — save status + project name */}
+    <div className="flex shrink-0 select-none items-center justify-between px-3" style={{ height: 28, background: 'linear-gradient(180deg,#1c1c20,#16161a)', borderTop: '1px solid #0c0c0f', boxShadow: '0 -1px 0 rgba(255,255,255,.04)', fontSize: 11, color: '#6a6a74' }}>
       <div className="flex items-center gap-3">
-        {/* Save indicator */}
-        <div className="flex items-center gap-1.5">
-          {isSaving
-            ? <Loader2 size={10} style={{ color: '#18a0fb', animation: 'spin 0.8s linear infinite' }} />
-            : <Circle size={8} style={{ color: '#22c55e', fill: '#22c55e' }} />
-          }
-          <span style={{ fontSize: 10, color: isSaving ? '#18a0fb' : '#555' }}>
-            {isSaving ? 'Saving…' : 'Saved'}
+        <div className="flex items-center gap-1.5" role="status" aria-live="polite">
+          {isSaving ? <Loader2 size={11} className="animate-spin" style={{ color: '#18a0fb' }} /> : <CheckCircle2 size={11} style={{ color: '#22c55e' }} />}
+          <span style={{ fontSize: 10, color: isSaving ? '#43b7ff' : '#7a7a86' }}>
+            {isSaving ? 'Saving…' : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'All changes saved'}
           </span>
         </div>
-
-        <span style={{ width: 1, height: 12, background: '#2a2a2a', display: 'inline-block' }} />
-
-        {/* Editable project name */}
-        {isEditing ? (
-          <input
-            autoFocus value={draft} maxLength={48}
-            onChange={e => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(project.name); setIsEditing(false); } }}
-            style={{ background: '#2a2a2a', border: '1px solid #18a0fb', borderRadius: 3, color: '#e5e5e5', fontSize: 11, padding: '1px 6px', outline: 'none', width: 160 }}
-          />
-        ) : (
-          <button onClick={() => setIsEditing(true)} title="Click to rename"
-            style={{ background: 'none', border: 'none', cursor: 'text', color: '#888', fontSize: 11, padding: '0 4px', borderRadius: 3 }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#2a2a2a'; e.currentTarget.style.color = '#ccc'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888'; }}>
-            {project.name || 'Untitled'}
-          </button>
-        )}
+        {selected && <><span className="toolbar-sep" style={{ height: 12, margin: 0 }} /><span style={{ fontSize: 10, color: '#9a9aa6' }}>Selected: <b style={{ color: '#d0d0d8' }}>{selected}</b></span></>}
       </div>
-
-      {/* Right — stats */}
-      <div className="hidden md:flex items-center gap-4">
-        <span style={{ color: '#444', fontSize: 10 }}>
-          {project.style.theme.replace(/_/g, ' ')}
-        </span>
-        <span style={{ width: 1, height: 10, background: '#2a2a2a', display: 'inline-block' }} />
-        <span style={{ fontSize: 10 }}>
-          <span style={{ color: '#555' }}>blocks </span>
-          <span style={{ color: '#888', fontWeight: 600 }}>{project.blocks.length}</span>
-        </span>
-        <span style={{ fontSize: 10 }}>
-          <span style={{ color: '#555' }}>size </span>
-          <span style={{ color: '#888', fontWeight: 600 }}>{fileSize}</span>
-        </span>
-        <span style={{ fontSize: 10 }}>
-          <span style={{ color: '#22c55e', fontWeight: 700 }}>● </span>
-          <span style={{ color: '#555' }}>60 fps</span>
-        </span>
+      <div className="hidden items-center gap-4 md:flex">
+        {stat('Sections', project.blocks.length)}
+        {stat('Layers', (project.elements || []).length)}
+        {stat('Size', size)}
+        {stat('Zoom', `${zoom}%`)}
       </div>
     </div>
   );
