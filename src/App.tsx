@@ -34,12 +34,12 @@ type Toast = { id: string; msg: string; type: 'ok' | 'err' | 'info' };
 type Clip = { kind: 'block'; data: Block } | { kind: 'element'; data: CanvasElement } | null;
 
 /* ── Error boundary so a rendering bug never leaves a blank screen ─── */
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, { error: Error | null }> {
   state = { error: null as Error | null };
   static getDerivedStateFromError(error: Error) { return { error }; }
   componentDidCatch(error: Error) { console.error('Landy crashed:', error); }
   render() {
-    if (!this.state.error) return this.props.children;
+    if (!this.state.error) return (this as any).props.children;
     return (
       <div style={{ height: '100dvh', display: 'grid', placeItems: 'center', background: '#16161a', color: '#e5e5e5', padding: 24, textAlign: 'center' }}>
         <div style={{ maxWidth: 420 }}>

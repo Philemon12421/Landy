@@ -80,6 +80,7 @@ export interface BlockStyles {
 }
 
 export interface Block {
+  hidden?: boolean;
   id: string; type: BlockType; name: string;
   styles: BlockStyles; content: BlockContent;
 }
@@ -90,6 +91,7 @@ export interface SelectionState {
 }
 
 export interface ProjectState {
+  publishedSlug?: string;
   name: string; blocks: Block[]; style: StyleConfig; elements?: CanvasElement[];
 }
 
@@ -100,6 +102,20 @@ export interface CommunityTemplate {
 export type ElementType = 'text' | 'image' | 'button' | 'shape' | 'container';
 
 export interface CanvasElement {
+  name?: string;
+  hidden?: boolean;
+  locked?: boolean;
+  opacity?: number;
+  rotation?: number;
+  strokeWidth?: number;
+  stroke?: string;
+  fontWeight?: number;
+  fontFamily?: string;
+  align?: 'left' | 'center' | 'right';
+  fill?: string;
+  radius?: number;
+  shape?: string;
+
   id: string;
   type: ElementType;
   x: number;
@@ -111,3 +127,22 @@ export interface CanvasElement {
   color?: string;
   fontSize?: number;
 }
+
+
+export type ToolMode = 'move' | 'hand' | 'text' | 'rect' | 'ellipse';
+
+export const DESIGN_WIDTH = 1200;
+
+export const VIEWPORT_WIDTH: Record<ViewportMode, number> = {
+  desktop: 1440,
+  laptop: 1024,
+  tablet: 768,
+  mobile: 375,
+};
+
+export const VIEWPORT_LABEL: Record<ViewportMode, string> = {
+  desktop: 'Desktop',
+  laptop: 'Laptop',
+  tablet: 'Tablet',
+  mobile: 'Mobile',
+};
