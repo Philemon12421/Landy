@@ -152,7 +152,7 @@ const limited = (req: Request, res: Response, next: NextFunction) => {
 };
 
 app.get('/api/sites/:slug', (req, res) => {
-  const { slug } = req.params;
+  const slug = String(req.params.slug);
   if (!SLUG_RE.test(slug) || RESERVED.has(slug)) return res.status(400).json({ error: 'Invalid address.' });
   const rec = readSite(slug);
   if (!rec) return res.status(404).json({ error: 'Not found.' });
@@ -185,7 +185,7 @@ app.post('/api/sites', limited, (req, res) => {
 });
 
 app.delete('/api/sites/:slug', limited, (req, res) => {
-  const { slug } = req.params;
+  const slug = String(req.params.slug);
   if (!SLUG_RE.test(slug)) return res.status(400).json({ error: 'Invalid address.' });
   const rec = readSite(slug);
   if (!rec) return res.status(404).json({ error: 'Not found.' });
@@ -195,7 +195,7 @@ app.delete('/api/sites/:slug', limited, (req, res) => {
 });
 
 app.get('/p/:slug', (req, res) => {
-  const { slug } = req.params;
+  const slug = String(req.params.slug);
   const rec = SLUG_RE.test(slug) ? readSite(slug) : null;
   if (!rec) {
     return res.status(404).type('html').send('<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page not found</title><body style="font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#0e0e12;color:#e5e5e5;text-align:center"><div><h1 style="font-size:3rem;margin:0">404</h1><p style="opacity:.7">This page has not been published, or it was taken down.</p></div></body>');
@@ -221,7 +221,11 @@ async function init() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
+    // SPA fallback. A plain middleware works on Express 4 and 5 (the old app.get('*') throws on Express 5).
+    app.use((req, res, next) => {
+      if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/api/') || req.path.startsWith('/p/')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
   }
   app.listen(PORT, '0.0.0.0', () => console.log(`[Landy] Server listening on http://0.0.0.0:${PORT}`));
 }
