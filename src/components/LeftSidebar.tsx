@@ -61,7 +61,7 @@ const elementIcon = (el: CanvasElement) => {
 function LayerRow({ icon: Icon, name, selected, hidden, locked, onClick, onRename, onToggleHidden, onToggleLock, children }: {
   icon: React.ComponentType<{ size?: number }>; name: string; selected: boolean; hidden?: boolean; locked?: boolean;
   onClick: () => void; onRename: (n: string) => void; onToggleHidden: () => void; onToggleLock?: () => void; children?: React.ReactNode;
-}) {
+} & React.PropsWithChildren & React.HTMLAttributes<HTMLDivElement>) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const commit = () => { const t = draft.trim(); if (t && t !== name) onRename(t); setEditing(false); };
